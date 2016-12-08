@@ -12,6 +12,9 @@ setup(
     author='Alok Gandhi',
     author_email='alok.gandhi2002@gmail.com',
     url='http://www.alokgandhi.net',
-    packages=['compage'],
+    packages=[
+        'compage',
+        'compage.services',
+    ],
     package_dir={'compage': 'src/compage'},
     )
