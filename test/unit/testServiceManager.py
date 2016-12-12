@@ -49,7 +49,7 @@ class TestDependencyManager(unittest.TestCase):
     def testAddAndGetFunc(self):
         for token in self.tokens:
             self.mgr.add(token, lambda token: token, execute=False)
-        randint = random.randint(0, len(self.tokens))
+        randint = random.randint(0, len(self.tokens) - 1)
         randomToken = self.tokens[randint]
         self.assertEqual(self.mgr.get(randomToken)(randomToken), randomToken)
 

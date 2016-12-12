@@ -1,0 +1,78 @@
+"""Various Pretty formatters"""
+
+import collections
+import json
+import textwrap
+import functools
+
+
+class FormattedDict(collections.defaultdict):
+    """Wrapper for pretty formatting the default dict using json.dumps"""
+    def __init__(self, default_factory):
+        super(FormattedDict, self).__init__(
+            default_factory)
+
+    def __str__(self):
+        return self._format()
+
+    def __repr__(self):
+        return self._format()
+
+    def _format(self):
+        return json.dumps(self, indent=4)
+
+
+def wrap(to_wrap, width=70):
+    """Preserve new line char in textwrap"""
+    out = []
+    for line in to_wrap.split('\n'):
+        if not line:
+            out.append('')
+        wrapped = textwrap.wrap(line, width=width)
+        for wrapped_line in wrapped:
+            out.append(wrapped_line)
+    return '\n'.join(out)
+
+
+def format_iterable(iterable, format_char="'"):
+    """Adds a format char around the members of an iterable"""
+    def _addChar(sub):
+        return '{char}{sub}{char}'.format(char=format_char, sub=sub)
+    return ', '.join(map(_addChar, iterable))
+
+
+def format_header(
+        msg,
+        format_char="-",
+        top=True,
+        bottom=True,
+        width=70,
+        auto_length=False,
+        ):
+    """Creates a header using a fomat character"""
+    header = []
+
+    width = len(msg) if auto_length else width
+
+    sep = "{sep}".format(sep=format_char * width)
+    msg = "{msg}".format(msg=msg)
+
+    if top:
+        header.append(sep)
+
+    header.append(msg)
+
+    if bottom:
+        header.append(sep)
+
+    return '\n'.join(header)
+
+
+def format_output(output_data, width=70):
+    """Creates a text wrapped string from a list of strings"""
+    formatted_output = map(
+        functools.partial(wrap, width=width),
+        output_data,
+    )
+    output_string = '\n'.join(formatted_output)
+    return output_string
