@@ -1,5 +1,7 @@
 """Reports on the imports of a package"""
 import os
+
+
 from compage.introspection import ImportScanner
 from compage.formatters import (
     FormattedDict,
@@ -132,13 +134,10 @@ class ImportReporter(object):
 
 def main():
     package_root = os.path.abspath(os.path.join(__file__, '../../..'))
-    print package_root
     required_packages = [
     ]
     reporter = ImportReporter(
         package_root, required_packages=required_packages, width=79)
-    # print reporter.modules
-    # print reporter.report()
     print reporter.rank_report()
     print reporter.module_report('os')
     print reporter.import_report()
