@@ -1,5 +1,5 @@
 # compage
-A python tool bag consiting of generic reusable utilities and tools.
+A python tool bag of generic reusable utilities and tools.
 
 ### compage.services
 --------------------
