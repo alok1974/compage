@@ -13,7 +13,7 @@ HAVE_ARGUMENT = chr(dis.HAVE_ARGUMENT)
 
 # Adapted from stdlib 'modulefinder'
 class ImportScanner(object):
-    """Scanner for catching `import` statement in the source code"""
+    """Scanner for extracting `import` statement in the source code"""
     def __init__(self, pathname):
         super(ImportScanner, self).__init__()
         self._code = self._get_code_oject(pathname)
@@ -40,8 +40,6 @@ class ImportScanner(object):
         return code
 
     def _scanner(self, co):
-        # Scan the code, and yield 'interesting' opcode combinations
-        # Python 2.5 version (has absolute and relative imports)
         code = co.co_code
         names = co.co_names
         consts = co.co_consts

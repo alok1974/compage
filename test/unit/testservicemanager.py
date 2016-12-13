@@ -3,7 +3,7 @@ import random
 import unittest
 
 
-from compage.services import ServiceManager, exception
+from compage import services, exception
 
 
 class InjectionDonor(object):
@@ -25,86 +25,85 @@ class InjectionReceiver(object):
         return self._injection
 
 
-# Generates a new unique token on each call
-def getNewUniqueToken():
+def unique_token():
     return uuid.uuid4().hex
 
 
 class TestDependencyManager(unittest.TestCase):
     def setUp(self):
-        self.mgr = ServiceManager
-        self.token01 = getNewUniqueToken()
-        self.token02 = getNewUniqueToken()
-        self.tokens = [getNewUniqueToken() for x in range(100)]
+        self.mgr = services.ServiceManager
+        self.token_01 = unique_token()
+        self.token_02 = unique_token()
+        self.tokens = [unique_token() for x in range(100)]
 
     def tearDown(self):
-        self.mgr.removeAll()
+        self.mgr.remove_all()
 
-    def testAddAndGet(self):
-        codeObject = InjectionDonor(self.token01)
-        self.mgr.add(self.token01, codeObject)
-        service = self.mgr.get(self.token01)
-        self.assertEqual(service.foo, self.token01)
+    def test_add_and_get(self):
+        code_object = InjectionDonor(self.token_01)
+        self.mgr.add(self.token_01, code_object)
+        service = self.mgr.get(self.token_01)
+        self.assertEqual(service.foo, self.token_01)
 
-    def testAddAndGetFunc(self):
+    def test_add_and_get_func(self):
         for token in self.tokens:
             self.mgr.add(token, lambda token: token, execute=False)
         randint = random.randint(0, len(self.tokens) - 1)
-        randomToken = self.tokens[randint]
-        self.assertEqual(self.mgr.get(randomToken)(randomToken), randomToken)
+        random_token = self.tokens[randint]
+        self.assertEqual(
+            self.mgr.get(random_token)(random_token), random_token)
 
-    def testRemoveAll(self):
-        self.mgr.removeAll()
+    def test_remove_all(self):
+        self.mgr.remove_all()
         self.assertEqual(self.mgr.count, 0)
 
-    def testRemoveService(self):
-        self.mgr.add(self.token01, lambda: True)
-        self.mgr.remove(self.token01)
-        self.assertFalse(self.mgr.exists(self.token01))
+    def test_remove_service(self):
+        self.mgr.add(self.token_01, lambda: True)
+        self.mgr.remove(self.token_01)
+        self.assertFalse(self.mgr.exists(self.token_01))
 
-    def testExists(self):
-        self.mgr.add(self.token01, self.token01)
-        self.assertTrue(self.mgr.exists(self.token01))
+    def test_exists(self):
+        self.mgr.add(self.token_01, self.token_01)
+        self.assertTrue(self.mgr.exists(self.token_01))
 
-    def testTokens(self):
+    def test_tokens(self):
         for token in self.tokens:
             self.mgr.add(token, token)
         self.assertEqual(self.mgr.tokens, self.tokens)
 
-    def testCount(self):
+    def test_count(self):
         randInt = random.randint(1, 20)
         for i in range(randInt):
-            self.mgr.add(getNewUniqueToken(), lambda: True)
+            self.mgr.add(unique_token(), lambda: True)
         self.assertEqual(self.mgr.count, randInt)
 
-    def testSingletonBehaviour(self):
-        from compage.services import ServiceManager as mgr02
+    def test_singleton_behaviour(self):
+        another_mgr = services.ServiceManager
+        self.assertEqual(another_mgr.id, self.mgr.id)
 
-        self.assertEqual(mgr02.id, self.mgr.id)
-
-    def testNoServiceException(self):
+    def test_no_service_exception(self):
         with self.assertRaises(exception.NoServiceError):
-            self.mgr.get(self.token01)
+            self.mgr.get(self.token_01)
 
-    def testServiceNotFoundException(self):
-        self.mgr.add(self.token01, lambda: True)
+    def test_service_not_found_exception(self):
+        self.mgr.add(self.token_01, lambda: True)
         with self.assertRaises(exception.ServiceNotFoundError):
-            self.mgr.get(self.token02)
+            self.mgr.get(self.token_02)
 
-    def testInvalidTokenError(self):
+    def test_invalid_token_error(self):
         with self.assertRaises(exception.InvalidTokenError):
             self.mgr.add(0, lambda: True)
 
-    def testNoDuplicateService(self):
-        self.mgr.add(self.token01, lambda: True)
+    def test_no_duplicate_service(self):
+        self.mgr.add(self.token_01, lambda: True)
 
         with self.assertRaises(exception.ServiceAlreadyExistsError):
-            self.mgr.add(self.token01, lambda: True)
+            self.mgr.add(self.token_01, lambda: True)
 
-    def testForceUpdateService(self):
-        self.mgr.add(self.token01, self.token01)
-        self.mgr.add(self.token01, self.token02, force=True)
-        self.assertEquals(self.mgr.get(self.token01), self.token02)
+    def test_force_update_service(self):
+        self.mgr.add(self.token_01, self.token_01)
+        self.mgr.add(self.token_01, self.token_02, force=True)
+        self.assertEquals(self.mgr.get(self.token_01), self.token_02)
 
 
 if __name__ == '__main__':
