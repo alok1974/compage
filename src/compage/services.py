@@ -8,7 +8,7 @@ import collections
 
 
 from compage.decorator import classproperty, validatetype
-from compage.services import exception
+from compage import exception
 
 
 __all__ = ['ServiceManager']
@@ -21,21 +21,19 @@ validatetoken = validatetype(
     str,
     exc=exception.InvalidTokenError,
     msg=msg,
-    formatArgs=[1]
+    format_args=[1]
 )
 
 
+# Super Simple code object container using an OrderedDict
 class _CodeObjectServices(object):
-    """
-    Super Simple code object container using an OrderedDict
-    """
     def __init__(self):
         super(_CodeObjectServices, self).__init__()
         self._services = collections.OrderedDict()
 
     @validatetoken
-    def addService(self, token, service, force=False, execute=False,
-                   preArgs=None, preKwargs=None):
+    def add_service(self, token, service, force=False, execute=False,
+                    pre_args=None, pre_kwargs=None):
 
         if token in self.tokens and not force:
             msg = ("service with token '{0}' already exists, "
@@ -46,16 +44,16 @@ class _CodeObjectServices(object):
             # Execute (call ) the service object before storing it.
             # This will store the return value in case of a function / method
             # and an object instance in case of a class.
-            args = preArgs or []
-            kwargs = preKwargs or {}
-            serviceObj = service(*args, **kwargs)
+            args = pre_args or []
+            kwargs = pre_kwargs or {}
+            service_obj = service(*args, **kwargs)
         else:
-            serviceObj = service
+            service_obj = service
 
-        self._services[token] = serviceObj
+        self._services[token] = service_obj
 
     @validatetoken
-    def removeService(self, token):
+    def remove_service(self, token):
         try:
             self._services.pop(token)
         except KeyError:
@@ -63,10 +61,10 @@ class _CodeObjectServices(object):
             raise exception.ServiceNotFoundError(msg)
 
     @validatetoken
-    def serviceExists(self, token):
+    def service_exists(self, token):
         return token in self._services
 
-    def clearAll(self):
+    def clear_all(self):
         self._services.clear()
 
     @property
@@ -109,10 +107,10 @@ class _ServiceDescriptor(object):
             msg = "Unexpected attribute request other then 'service'"
             raise exception.UnexpectedAttributeError(msg)
 
-        self.service = self._getService()
+        self.service = self._get_service()
         return self.service
 
-    def _getService(self):
+    def _get_service(self):
         return self._services[self._token]
 
 
@@ -120,8 +118,8 @@ class ServiceManager(object):
     _services = _CodeObjectServices()
 
     @classmethod
-    def add(cls, token, service, force=False, execute=True, preArgs=None,
-            preKwargs=None):
+    def add(cls, token, service, force=False, execute=True, pre_args=None,
+            pre_kwargs=None):
         """
         Adds a service
 
@@ -131,10 +129,10 @@ class ServiceManager(object):
             service (obj): Any code object i.e, class, function etc.
             force (bool, optional): When true overwrites the existing service
             execute (bool, optional): When true, executes the code with given
-                                      preArgs and preKwargs before adding
-            preArgs ([], optional): Arguments for pre execution of code before
+                                      pre_args and pre_kwargs before adding
+            pre_args ([], optional): Arguments for pre execution of code before
                                     adding
-            preKwargs ({}, optional): Keyword arguments for pre execution of
+            pre_kwargs ({}, optional): Keyword arguments for pre execution of
                                       code before adding
 
 
@@ -143,13 +141,13 @@ class ServiceManager(object):
             None
 
         """
-        cls._services.addService(
+        cls._services.add_service(
             token,
             service,
             force=force,
             execute=execute,
-            preArgs=preArgs,
-            preKwargs=preKwargs,
+            pre_args=pre_args,
+            pre_kwargs=pre_kwargs,
         )
 
     @classmethod
@@ -166,7 +164,7 @@ class ServiceManager(object):
             None
 
         """
-        cls._services.removeService(token)
+        cls._services.remove_service(token)
 
     @classmethod
     def get(cls, token):
@@ -187,9 +185,9 @@ class ServiceManager(object):
         return _Service.obj
 
     @classmethod
-    def removeAll(cls):
+    def remove_all(cls):
         """Removes all existing services"""
-        cls._services.clearAll()
+        cls._services.clear_all()
 
     @classmethod
     def exists(cls, token):
@@ -204,7 +202,7 @@ class ServiceManager(object):
         Returns:
             bool
         """
-        return cls._services.serviceExists(token)
+        return cls._services.service_exists(token)
 
     @classproperty
     def tokens(cls):

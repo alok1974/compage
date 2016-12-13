@@ -4,6 +4,7 @@ import collections
 import json
 import textwrap
 import functools
+import re
 
 
 class FormattedDict(collections.defaultdict):
@@ -36,9 +37,9 @@ def wrap(to_wrap, width=70):
 
 def format_iterable(iterable, format_char="'"):
     """Adds a format char around the members of an iterable"""
-    def _addChar(sub):
+    def _add_char(sub):
         return '{char}{sub}{char}'.format(char=format_char, sub=sub)
-    return ', '.join(map(_addChar, iterable))
+    return ', '.join(map(_add_char, iterable))
 
 
 def format_header(
@@ -76,3 +77,11 @@ def format_output(output_data, width=70):
     )
     output_string = '\n'.join(formatted_output)
     return output_string
+
+
+# stackoverflow: http://stackoverflow.com/questions/1175208/
+# elegant-python-function-to-convert-camelcase-to-camel-case
+def camel_case_to_snake_case(name):
+    "Converts `camelCase` to `camel_case`"
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
