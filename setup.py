@@ -14,7 +14,6 @@ setup(
     url='http://www.alokgandhi.net',
     packages=[
         'compage',
-        'compage.services',
     ],
     package_dir={'compage': 'src/compage'},
     )
