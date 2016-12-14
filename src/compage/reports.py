@@ -1,17 +1,12 @@
-"""Reports on the imports of a package"""
-import os
-
-
-from compage.introspection import ImportScanner
+"""Various Reporter Objects"""
+from compage import introspection
 from compage.formatters import (
-    FormattedDict,
     format_header,
     format_iterable,
     format_output
 )
 
 __all__ = ['ImportReporter']
-# TODO: Write unit test
 
 
 class ImportReporter(object):
@@ -23,7 +18,7 @@ class ImportReporter(object):
         self._required_packages = required_packages or []
         self._ignore = ignore or []
         self._width = width
-        self._import_data = self._get_imports()
+        self._import_data = self._get_import_data(self._package_root)
         self._report = None
         self._rank = None
         self._module_reports = {}
@@ -46,23 +41,11 @@ class ImportReporter(object):
         return format_output(
             self._get_module_report(module_name), width=self._width)
 
-    def _get_imports(self):
-        imports = {}
-        for dirpath, dirnames, filenames in os.walk(self._package_root):
-            for filename in filenames:
-                if not filename.endswith('.py'):
-                    continue
-                file_path = os.path.join(dirpath, filename)
-                file_imports = ImportScanner(file_path).imports
-                for (lineno, line, name, _) in file_imports:
-                    top_level_name = name.split('.', 1)[0]
-                    if top_level_name in self._ignore:
-                        continue
-                    imports.setdefault(
-                        top_level_name,
-                        FormattedDict(list),
-                    )[file_path].append((lineno, line))
-        return imports
+    def _get_import_data(self, package_root):
+        import_data = introspection.ImportFinder(package_root).import_data
+        for name in self._ignore:
+            import_data.pop(name, None)
+        return import_data
 
     def _get_report(self):
         out = []
@@ -130,18 +113,3 @@ class ImportReporter(object):
             import_count = sum(map(len, import_data.values()))
             _rank.append((module_name, import_count))
         return sorted(_rank, key=lambda x: x[1], reverse=True)
-
-
-def main():
-    package_root = os.path.abspath(os.path.join(__file__, '../../..'))
-    required_packages = [
-    ]
-    reporter = ImportReporter(
-        package_root, required_packages=required_packages, width=79)
-    print reporter.rank_report()
-    print reporter.module_report('os')
-    print reporter.import_report()
-
-
-if __name__ == '__main__':
-    main()
