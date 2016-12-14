@@ -1,3 +1,7 @@
+"""Compage Exceptions"""
+
+
+# Exceptions for Service Manager
 class InvalidTokenError(TypeError):
     """Error raised when the token in malformed"""
     pass
