@@ -85,3 +85,14 @@ def camel_case_to_snake_case(name):
     "Converts `camelCase` to `camel_case`"
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def hex_to_alpha(hex):
+    """Converts hex string to alpha string, 'f718b' -> 'fhbib'"""
+    char_table = dict([(str(i), char) for i, char in enumerate('abcdefghij')])
+    out = []
+    for s in hex:
+        if unicode(s, 'utf-8').isnumeric():
+            s = char_table[s]
+        out.append(s)
+    return ''.join(out)
