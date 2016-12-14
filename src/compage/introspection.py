@@ -1,7 +1,9 @@
 """Code Introspection Utilities"""
+import os
 import struct
 import itertools
 import dis
+import collections
 
 LOAD_CONST = chr(dis.opname.index('LOAD_CONST'))
 IMPORT_NAME = chr(dis.opname.index('IMPORT_NAME'))
@@ -128,3 +130,33 @@ class ImportScanner(object):
             line_num += line_incr
         if line_num != last_line_num:
             yield (byte_num, line_num)
+
+
+class ImportFinder(object):
+    """"Finds imports for a package"""
+    def __init__(self, package_root):
+        self._package_root = package_root
+        self._import_data = None
+
+    @property
+    def import_data(self):
+        if self._import_data is None:
+            self._import_data = self._get_imports()
+        return self._import_data
+
+    def _get_imports(self):
+        imports = {}
+        for dirpath, dirnames, filenames in os.walk(self._package_root):
+            for filename in filenames:
+                if not filename.endswith('.py'):
+                    continue
+                file_path = os.path.join(dirpath, filename)
+                file_imports = ImportScanner(file_path).imports
+                for (lineno, line, name, _) in file_imports:
+                    top_level_name = name.split('.', 1)[0]
+                    imports.setdefault(
+                        top_level_name,
+                        collections.defaultdict(list)
+                    )[file_path].append((lineno, line))
+
+        return imports
