@@ -1,12 +1,9 @@
 # compage
-A python tool bag of generic reusable utilities and tools.
+Generic reusable python utilities and tools.
 
 ### compage.services
 --------------------
-A Code Object Service Manager - classes, functions and other code objects can be added as a service and retrieved when needed. Mostly helps in patterns like dependency injection.
-
-
-##### Compage Services Example
+Code Object Manager - classes, functions and other code objects can be added as a service and retrieved when needed. Mostly helps in patterns like dependency injection.
 ```python
 from compage.services import ServiceManager as mgr
 
@@ -36,4 +33,36 @@ print target.injectedCode.foo
 
 # >>> foo
 
+```
+
+### compage.installutils
+-------------------------
+Light weight package installer a la setup.py(distutils).
+```python
+from compage.installutils import setup
+
+# install - `True` to install, `False` to uninstall
+install = True
+
+# force_update - `True` to overwrite(update) existing package
+force_update = False
+
+# site - location where the package should be installed. Note that this
+# location should be in sys.path via PYTHONPATH or use of .pth files
+site = 'path to site location'
+
+# package_name - Name of the installed package
+package_name = 'compage'
+
+# src_dir - Path to source code dir
+src_dir = 'path to source code dir'
+
+args = [site, package_name]
+kwargs = {
+    'src_dir': src_dir,
+    'install': install,
+    'force_update': force_update,
+}
+
+setup(*args, **kwargs)
 ```
