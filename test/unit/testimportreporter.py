@@ -67,28 +67,26 @@ class Tree(object):
         super(Tree, self).__init__()
         self._site = site
         self._nodes = nodes
+        self._root_node = self._get_root_node(self._nodes)
 
     @property
     def site(self):
         return self._site
 
     def make_tree(self):
-        root_node = sorted(self._nodes, key=lambda n: n.parent)[0]
-        self.walk(
-            site=self._site,
-            parent=root_node,
-            nodes=self._nodes,
-            callback=self.make_node,
-        )
+        self._walk(self._site, self._root_node)
 
-    def walk(self, site, parent, nodes, callback=lambda: True):
+    def _get_root_node(self, nodes):
+        return sorted(self._nodes, key=lambda n: n.parent)[0]
+
+    def _walk(self, site, parent):
         site = os.path.join(site, str(parent))
-        callback(site, parent)
-        for node in nodes:
+        self._make_node(site, parent)
+        for node in self._nodes:
             if node.parent == parent:
-                self.walk(site, node, nodes, callback)
+                self._walk(site, node)
 
-    def make_node(self, site, node):
+    def _make_node(self, site, node):
         if node.isdir:
             if not os.path.exists(site):
                 os.makedirs(site)
@@ -123,7 +121,8 @@ def random_tree(package_name):
                 )
             )
         else:
-            id = formatters.hex_to_alpha(uuid.uuid4().hex[:5])
+            id = formatters.hex_to_alpha(uuid.uuid4().hex)
+            id = id[:5]
             name = '{0}_{1}'.format(package_name, id)
             isdir = bool(random.randint(0, 1))
             if isdir:
