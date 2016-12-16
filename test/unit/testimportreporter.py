@@ -12,147 +12,122 @@ from compage import reports, formatters
 class Node(object):
     def __init__(self, name=None, parent=None, imports=None, isdir=None):
         super(Node, self).__init__()
-        self._name = name
-        self._parent = parent
-        self._imports = imports
-        self._isdir = isdir
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
-
-    @property
-    def imports(self):
-        return self._imports
-
-    @imports.setter
-    def imports(self, value):
-        self._imports = value
-
-    @property
-    def isdir(self):
-        return self._isdir
-
-    @isdir.setter
-    def isdir(self, value):
-        self._isdir = value
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.name
+        self.name = name
+        self.parent = parent
+        self.imports = imports
+        self.isdir = isdir
+        self.site = self._get_site()
 
     def __eq__(self, other):
-        return self.name == other
+        return self.name == other.name
 
     def __neq__(self, other):
-        return not self.name != other
+        return not self.name != other.name
+
+    def _get_site(self):
+        parent = self.parent._get_site() if self.parent is not None else ''
+        return os.path.join(parent, self.name)
+
+    def __repr__(self):
+        return "Node('{0}')".format(self.name)
 
 
 class Tree(object):
     def __init__(self, site, nodes):
         super(Tree, self).__init__()
-        self._site = site
-        self._nodes = nodes
-        self._root_node = self._get_root_node(self._nodes)
-
-    @property
-    def site(self):
-        return self._site
+        self.site = site
+        self.nodes = nodes
+        self.root_node = self._get_root_node(self.nodes)
 
     def make_tree(self):
-        self._walk(self._site, self._root_node)
+        for node in self.nodes:
+            self._make(node)
 
     def _get_root_node(self, nodes):
-        return sorted(self._nodes, key=lambda n: n.parent)[0]
+        return sorted(self.nodes, key=lambda n: n.parent)[0]
 
-    def _walk(self, site, parent):
-        site = os.path.join(site, str(parent))
-        self._make_node(site, parent)
-        for node in self._nodes:
-            if node.parent == parent:
-                self._walk(site, node)
+    def _walk(self, tree_node):
+        yield tree_node
+        for child in self._get_children(tree_node):
+                for node in self._walk(child):
+                    yield node
 
-    def _make_node(self, site, node):
+    def _get_children(self, tree_node):
+        for node in self.nodes:
+            if node.parent == tree_node:
+                yield node
+
+    def _make(self, node):
+        node_path = os.path.join(self.site, node.site)
         if node.isdir:
-            if not os.path.exists(site):
-                os.makedirs(site)
+            if not os.path.exists(node_path):
+                os.makedirs(node_path)
         else:
             imports = node.imports or []
             import_string = ''.join(
                 map(lambda m: 'import {0}\n'.format(m), imports))
 
-            with open(site, 'w') as fp:
+            with open(node_path, 'w') as fp:
                 fp.write(import_string)
 
 
-def random_tree(package_name):
-    nodes = []
-    curr_parent = None
-    for i in range(random.randint(10, 20)):
-        node_info = None
-        if i == 0:
-            node_info = {
-                'name': package_name,
-                'parent': None,
-                'imports': None,
-                'isdir': True,
-            }
-            # Create a node for __init__.py
+def random_tree(
+        tree_name, min_nodes=10, max_nodes=20, min_imports=5, max_imports=8):
+    # Make Root Node
+    root_node = Node(
+        name=tree_name,
+        parent=None,
+        imports=None,
+        isdir=True
+    )
+
+    # Make __init__.py Node for Root Node
+    root_initpy_node = Node(
+        name='__init__.py',
+        parent=root_node,
+        imports=None,
+        isdir=False,
+    )
+
+    nodes = [root_node, root_initpy_node]
+    curr_parent = root_node
+    for i in range(random.randint(min_nodes, max_nodes)):
+        name = formatters.hex_to_alpha(uuid.uuid4().hex[:5])
+
+        # Randomize dir creation
+        isdir = bool(random.randint(0, 1))
+
+        if isdir:
+            imports = None
+        else:
+            imports = [random.choice([m for m in sys.modules.keys()
+                                      if not m.startswith('_')])
+                       for i in range(random.randint(min_imports, max_nodes))]
+            name = '{0}.py'.format(name)
+
+        node = Node(
+            name=name,
+            parent=curr_parent,
+            imports=imports,
+            isdir=isdir,
+        )
+
+        nodes.append(node)
+
+        # Create __init__.py node if node is a dir
+        if isdir:
             nodes.append(
                 Node(
                     name='__init__.py',
-                    parent=package_name,
+                    parent=node,
                     imports=None,
                     isdir=False,
                 )
             )
-        else:
-            id = formatters.hex_to_alpha(uuid.uuid4().hex)
-            id = id[:5]
-            name = '{0}_{1}'.format(package_name, id)
-            isdir = bool(random.randint(0, 1))
-            if isdir:
-                imports = None
-                # Create a node for __init__.py
-                nodes.append(
-                    Node(
-                        name='__init__.py',
-                        parent=name,
-                        imports=None,
-                        isdir=False,
-                    )
-                )
-            else:
-                imports = [random.choice([m for m in sys.modules.keys()
-                                          if not m.startswith('_')])
-                           for i in range(random.randint(5, 8))]
-                name = '{0}.py'.format(name)
 
-            node_info = {
-                'name': name,
-                'parent': curr_parent,
-                'imports': imports,
-                'isdir': isdir,
-            }
-
-        nodes.append(Node(**node_info))
-        if not(bool(i)) or not bool(random.randint(0, 1)):
-            if node_info.get('isdir'):
-                curr_parent = node_info.get('name')
+        # Randomize going up or down the tree
+        if bool(random.randint(0, 1)) and node.isdir:
+            curr_parent = node
 
     return nodes
 
@@ -163,8 +138,18 @@ def create_package(site, nodes):
     return tree.site
 
 
-def create_mock_package(mock_name):
-    return create_package(tempfile.mkdtemp(), random_tree(mock_name))
+def create_mock_package(mock_name, min_nodes=50, max_nodes=100,
+                        min_imports=20, max_imports=50):
+    return create_package(
+        tempfile.mkdtemp(),
+        random_tree(
+            mock_name,
+            min_nodes=min_nodes,
+            max_nodes=max_nodes,
+            min_imports=min_imports,
+            max_imports=max_imports,
+        ),
+    )
 
 
 class TestImportReporter(unittest.TestCase):
@@ -179,6 +164,7 @@ class TestImportReporter(unittest.TestCase):
 
     def testimportreporter(self):
         print self.import_reporter.import_report()
+        print self.import_reporter.rank_report()
 
 
 if __name__ == '__main__':
