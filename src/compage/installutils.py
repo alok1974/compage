@@ -79,7 +79,8 @@ def handle_error(exc_type, error_info=None):
         msg = "{0} is not a valid package, no __init__.py found"
         raise InvalidPackageError(msg.format(error_info))
     elif exc_type == UninstallError:
-        msg = "Package '{0}' is not installed".format(error_info)
+        msg = "Package '{0}' is not installed, nothing to uninstall".format(
+            error_info)
         raise UninstallError(msg)
     else:
         msg = "Unable to handle exception {0}".format(exc_type)
@@ -114,15 +115,22 @@ def package_install(site, package_name, src_dir, force_update=False):
     src_dir = validate_package(src_dir)
     dst_dir = os.path.join(site, package_name)
 
+    updated = False
     if force_update and os.path.exists(dst_dir):
         shutil.rmtree(dst_dir)
+        updated = True
 
     try:
         shutil.copytree(src_dir, dst_dir)
     except OSError as e:
         handle_error(InstallError, (e, package_name))
 
-    msg = "installed '{0}' to site '{1}'\n".format(src_dir, site)
+    msg_base = "'{0}' to site '{1}'\n".format(src_dir, site)
+    if updated:
+        msg = 'Updated {0}'.format(msg_base)
+    else:
+        msg = 'Installed {0}'.format(msg_base)
+
     sys.stdout.write(msg)
 
 
@@ -133,7 +141,8 @@ def package_uninstall(site, package_name):
 
     shutil.rmtree(package_dir)
 
-    msg = "uninstalled {0} from site {1}\n".format(package_name, package_dir)
+    msg = "Uninstalled '{0}' from site '{1}'\n".format(
+        package_name, package_dir)
     sys.stdout.write(msg)
 
 
