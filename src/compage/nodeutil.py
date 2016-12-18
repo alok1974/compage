@@ -8,7 +8,7 @@ class Node(object):
         super(Node, self).__init__()
         self._name = name
         self._parent = parent
-        self._id = uuid.uuid4().hex
+        self._id = uuid.uuid4().hex[:8]
 
     @property
     def name(self):
@@ -28,11 +28,8 @@ class Node(object):
     def __neq__(self, other):
         return not self == other
 
-    def __str__(self):
-        return str(self.name)
-
     def __repr__(self):
-        return "Node({0})".format(self.name)
+        return "Node(name='{0}', id='{1}')".format(self.name, self.id)
 
 
 class Tree(object):
