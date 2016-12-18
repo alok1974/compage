@@ -25,7 +25,7 @@ class ImportReporter(object):
 
     @property
     def modules(self):
-        return self._import_data.keys()
+        return sorted(self._import_data.keys())
 
     def import_report(self):
         if self._report is None:
