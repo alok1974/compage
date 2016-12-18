@@ -33,7 +33,7 @@ class FileTree(object):
 
     def make_tree(self):
         tree = nodeutil.Tree(self.nodes)
-        package_name = tree.get_root_nodes()[0].name
+        root = tree.get_root_nodes()[0].name
         for node in tree.nodes:
             lineage = [n.name for n in tree.get_lineage(node) if n]
             hierarchy = [n for n in reversed(lineage)] + [node.name]
@@ -46,9 +46,9 @@ class FileTree(object):
                 with open(node_path, 'w') as fp:
                     fp.write(node.contents)
 
-        msg = ("Created package '{0}'({1} directories,"
+        msg = ("Created dir tree '{0}'({1} directories,"
                " {2} files) at site \"{3}\"").format(
-            package_name, self.num_dirs, self.num_files, self.root)
+            root, self.num_dirs, self.num_files, self.root)
         logger.Logger.info(msg)
 
     def _get_num_dirs(self):
