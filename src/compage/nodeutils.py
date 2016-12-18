@@ -1,15 +1,14 @@
 """Generic node object and node utility functions"""
+import uuid
 
 
 class Node(object):
+    """The node object, knows which parent node it is connected to"""
     def __init__(self, name, parent):
         super(Node, self).__init__()
         self._name = name
         self._parent = parent
-        self._child = None
-        self._lineage = self._create_lineage()
-        if parent is not None:
-            parent.child = self
+        self._id = uuid.uuid4().hex
 
     @property
     def name(self):
@@ -20,75 +19,85 @@ class Node(object):
         return self._parent
 
     @property
-    def lineage(self):
-        return self._lineage
-
-    def _create_lineage(self):
-        if self.parent is not None:
-            return tuple(
-                [node for node in self.parent._create_lineage()] + [self])
-        else:
-            return (None, self)
+    def id(self):
+        return self._id
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.id == other.id
 
     def __neq__(self, other):
-        return not self.name != other.name
+        return not self == other
 
     def __str__(self):
         return str(self.name)
 
     def __repr__(self):
-        return "Node('{0}')".format(self.name)
+        return "Node({0})".format(self.name)
 
 
-def get_root_nodes(nodes):
-    return [node for node in nodes if node.parent is None]
+class Tree(object):
+    """Provides queries on the given node objects"""
+    def __init__(self, nodes):
+        super(Tree, self).__init__()
+        self.nodes = nodes
+        self._num_nodes = len(self.nodes)
 
+    def get_root_nodes(self):
+        """Get all root nodes i.e, nodes with `None` as parent"""
+        return [node for node in self.nodes if node.parent is None]
 
-def get_leaf_nodes(nodes):
-    for node in nodes:
-        if not [child for child in get_children(node, nodes)]:
-            yield node
-
-
-def walk(start_node, nodes):
-    """Depth first iterator"""
-    yield start_node
-    for child in get_children(start_node, nodes):
-            for node in walk(child, nodes):
+    def get_leaf_nodes(self):
+        """Get all leaf nodes i.e, nodes with no children"""
+        visited = []
+        for node in self.nodes:
+            if not [child for child in self.get_children(node, self.nodes)]:
+                if self._is_visited(visited, node):
+                    continue
                 yield node
+                self._add_to_visited(visited, node)
 
+    def walk(self, tree_node):
+        """Depth first iterator for the given node"""
+        visited = []
+        yield tree_node
+        for child in self.get_children(tree_node, self.nodes):
+            for node in self.walk(child):
+                if self._is_visited(visited, node):
+                    continue
+                yield node
+                self._add_to_visited(visited, node)
 
-def get_children(parent_node, nodes):
-    for node in nodes:
-        if node.parent is None:
-            continue
-        elif node.parent == parent_node:
-            yield node
+    def get_children(self, tree_node):
+        """Iterator for children of the given node"""
+        visited = []
+        for node in self.nodes:
+            if node.parent is None:
+                continue
+            elif node.parent == tree_node:
+                if self._is_visited(visited, node):
+                    continue
+                yield node
+                self._add_to_visited(visited, node)
 
+    def get_lineage(self, tree_node):
+        """
+        Iterator for all parents of the given node
+        starting from immediate parent
+        """
+        visited = []
+        yield tree_node.parent
+        if tree_node.parent is not None:
+            for parent in self.get_lineage(tree_node.parent):
+                if self._is_visited(visited, parent):
+                    continue
+                yield parent
+                self._add_to_visited(visited, parent)
 
-def _test():
-    import random
-    node_names = [char for char in '0123456789']
-    nodes = []
-    curr_parent = None
-    for index, node_name in enumerate(node_names):
-        if index == 0:
-            curr_parent = None
+    def _is_visited(self, visited, node):
+        if node is not None:
+            return node.id in visited
+        return False
 
-        node = Node(node_name, curr_parent)
-        nodes.append(node)
-
-        # Select a random parent for this node
-        curr_parent = random.choice(nodes)
-
-    root_nodes = get_root_nodes(nodes)
-    print 'root: {0}'.format(root_nodes)
-    for node in walk(root_nodes[0], nodes):
-        print '.'.join([str(n) for n in node.lineage if n])
-
-
-if __name__ == '__main__':
-    _test()
+    def _add_to_visited(self, visited, node):
+        if node is not None:
+            visited.append(node.id)
