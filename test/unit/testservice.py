@@ -3,7 +3,7 @@ import random
 import unittest
 
 
-from compage import services, exception
+from compage import service, exception
 
 
 class InjectionDonor(object):
@@ -31,7 +31,7 @@ def unique_token():
 
 class TestDependencyManager(unittest.TestCase):
     def setUp(self):
-        self.mgr = services.ServiceManager
+        self.mgr = service.ServiceManager
         self.token_01 = unique_token()
         self.token_02 = unique_token()
         self.tokens = [unique_token() for x in range(100)]
@@ -78,7 +78,7 @@ class TestDependencyManager(unittest.TestCase):
         self.assertEqual(self.mgr.count, randInt)
 
     def test_singleton_behaviour(self):
-        another_mgr = services.ServiceManager
+        another_mgr = service.ServiceManager
         self.assertEqual(another_mgr.id, self.mgr.id)
 
     def test_no_service_exception(self):

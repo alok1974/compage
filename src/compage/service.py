@@ -7,8 +7,7 @@ dependency injection.
 import collections
 
 
-from compage.decorator import classproperty, validatetype
-from compage import exception
+from compage import decorator, exception
 
 
 __all__ = ['ServiceManager']
@@ -16,7 +15,7 @@ __all__ = ['ServiceManager']
 
 # Creating a validation decorator for token validation
 msg = "token '{0}' should be of type <str or unicode>"
-validatetoken = validatetype(
+validatetoken = decorator.validatetype(
     1,
     str,
     exc=exception.InvalidTokenError,
@@ -204,7 +203,7 @@ class ServiceManager(object):
         """
         return cls._services.service_exists(token)
 
-    @classproperty
+    @decorator.classproperty
     def tokens(cls):
         """
         Returns a list of all existing service tokens
@@ -216,7 +215,7 @@ class ServiceManager(object):
         """
         return cls._services.tokens
 
-    @classproperty
+    @decorator.classproperty
     def count(cls):
         """
         Return the count of existing services
@@ -227,7 +226,7 @@ class ServiceManager(object):
         """
         return cls._services.count
 
-    @classproperty
+    @decorator.classproperty
     def id(cls):
         """
         Returns the id of services container (dict)

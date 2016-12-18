@@ -1,6 +1,6 @@
 """Various Reporter Objects"""
 from compage import introspection
-from compage.formatters import (
+from compage.formatter import (
     format_header,
     format_iterable,
     format_output

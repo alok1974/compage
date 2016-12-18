@@ -1,7 +1,7 @@
 import unittest
 
 
-from compage import formatters
+from compage import formatter
 
 
 class TestFormatters(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestFormatters(unittest.TestCase):
             '}'
         )
 
-        self.formatted_dict = formatters.FormattedDict(list)
+        self.formatted_dict = formatter.FormattedDict(list)
         self.formatted_dict['foo'].append('bar')
         self.width01 = 79
         self.width02 = 3
@@ -48,11 +48,11 @@ class TestFormatters(unittest.TestCase):
             self.formatted_dict.__str__(), self.formatted_dict_string)
 
     def test_wrap(self):
-        self.assertEquals(formatters.wrap(self.msg, width=1), "F\no\no")
+        self.assertEquals(formatter.wrap(self.msg, width=1), "F\no\no")
 
     def test_format_iterable(self):
         self.assertEquals(
-            formatters.format_iterable(
+            formatter.format_iterable(
                 self.iterable,
                 format_char=self.format_char,
             ),
@@ -61,13 +61,13 @@ class TestFormatters(unittest.TestCase):
 
     def test_format_header_01(self):
         self.assertEquals(
-            formatters.format_header(self.msg, auto_length=True),
+            formatter.format_header(self.msg, auto_length=True),
             self.expected_string_01,
         )
 
     def test_format_header_02(self):
         self.assertEquals(
-            formatters.format_header(
+            formatter.format_header(
                 self.msg, format_char="*",
                 width=self.width01,
             ),
@@ -76,13 +76,13 @@ class TestFormatters(unittest.TestCase):
 
     def test_format_header_03(self):
         self.assertEquals(
-            formatters.format_header(self.msg, top=False, width=self.width01),
+            formatter.format_header(self.msg, top=False, width=self.width01),
             self.expected_string_03,
         )
 
     def test_format_header_04(self):
         self.assertEquals(
-            formatters.format_header(
+            formatter.format_header(
                 self.msg, bottom=False,
                 width=self.width01,
             ),
@@ -91,7 +91,7 @@ class TestFormatters(unittest.TestCase):
 
     def test_format_header_05(self):
         self.assertEquals(
-            formatters.format_header(
+            formatter.format_header(
                 self.msg, top=False,
                 bottom=False,
                 width=self.width02
@@ -101,13 +101,13 @@ class TestFormatters(unittest.TestCase):
 
     def test_format_output(self):
         self.assertEquals(
-            formatters.format_output(self.iterable, width=3),
+            formatter.format_output(self.iterable, width=3),
             self.expected_string_05,
         )
 
     def test_camel_case_to_snake_case(self):
         self.assertEquals(
-            formatters.camel_case_to_snake_case(self.camel_case),
+            formatter.camel_case_to_snake_case(self.camel_case),
             self.expected_string_06,
         )
 
