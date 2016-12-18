@@ -1,6 +1,9 @@
 from functools import wraps
 
 
+__all__ = ['classproperty', 'validatetype']
+
+
 class classproperty(object):
     def __init__(self, getter):
         self.getter = getter

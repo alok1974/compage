@@ -36,6 +36,9 @@ import shutil
 from compage import exception
 
 
+__all__ = ['setup']
+
+
 def handle_error(exc_type, error_info=None):
     if exc_type == exception.InstallError:
         e, package_name = error_info

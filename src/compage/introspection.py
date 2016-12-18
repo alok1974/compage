@@ -5,6 +5,10 @@ import itertools
 import dis
 import collections
 
+
+__all__ = ['ImportScanner', 'ImportFinder']
+
+
 LOAD_CONST = chr(dis.opname.index('LOAD_CONST'))
 IMPORT_NAME = chr(dis.opname.index('IMPORT_NAME'))
 STORE_NAME = chr(dis.opname.index('STORE_NAME'))

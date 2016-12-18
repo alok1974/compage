@@ -5,6 +5,9 @@ import os
 from compage import nodeutil, logger
 
 
+__all__ = ['FileNode', 'FileTree']
+
+
 class FileNode(nodeutil.Node):
     def __init__(self, name, parent, isdir, contents=None):
         super(FileNode, self).__init__(name, parent)

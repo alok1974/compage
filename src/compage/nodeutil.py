@@ -2,11 +2,23 @@
 import uuid
 
 
+from compage import exception
+
+
+__all__ = ['Node', 'Tree']
+
+
 class Node(object):
     """The node object, knows which parent node it is connected to"""
     def __init__(self, name, parent):
         super(Node, self).__init__()
         self._name = name
+
+        if parent is not None and not isinstance(parent, Node):
+            msg = "parent '{0}' should be of type {1} or None".format(
+                parent, Node)
+            raise exception.NodeCreationError(msg)
+
         self._parent = parent
         self._id = uuid.uuid4().hex[:8]
 
@@ -29,7 +41,12 @@ class Node(object):
         return not self == other
 
     def __repr__(self):
-        return "Node(name='{0}', id='{1}')".format(self.name, self.id)
+        return "{0}({1}|{2}|parent='{3}|{4}')".format(
+            self.__class__.__name__,
+            self.name, self.id,
+            self.parent.name if self.parent else None,
+            self.parent.id if self.parent else None,
+        )
 
 
 class Tree(object):

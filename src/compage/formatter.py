@@ -7,6 +7,17 @@ import functools
 import re
 
 
+__all__ = [
+    'FormattedDict',
+    'wrap',
+    'format_iterable',
+    'format_header',
+    'format_output',
+    'camel_case_to_snake_case',
+    'hex_to_alpha'
+]
+
+
 class FormattedDict(collections.defaultdict):
     """Wrapper for pretty formatting the default dict using json.dumps"""
     def __init__(self, default_factory):
@@ -69,11 +80,11 @@ def format_header(
     return '\n'.join(header)
 
 
-def format_output(output_data, width=70):
+def format_output(string_list, width=70):
     """Creates a text wrapped string from a list of strings"""
     formatted_output = map(
         functools.partial(wrap, width=width),
-        output_data,
+        string_list,
     )
     output_string = '\n'.join(formatted_output)
     return output_string

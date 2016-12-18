@@ -51,3 +51,9 @@ class InvalidPackageError(IOError):
 class UninstallError(IOError):
     """Error raised when unable to uninstall package"""
     pass
+
+
+# Exceptions for nodeutils
+class NodeCreationError(ValueError):
+    """Error raised when unable to create node"""
+    pass
