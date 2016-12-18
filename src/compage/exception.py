@@ -1,6 +1,3 @@
-"""Compage Exceptions"""
-
-
 # Exceptions for Service Manager
 class InvalidTokenError(TypeError):
     """Error raised when the token in malformed"""
@@ -27,4 +24,30 @@ class UnexpectedAttributeError(ValueError):
 
 class ServiceAlreadyExistsError(Exception):
     """Error raised when trying to add already existing service"""
+    pass
+
+
+# Exceptions for installutils
+class InstallError(Exception):
+    """Error raised when install fails"""
+    pass
+
+
+class SiteNotFoundError(IOError):
+    """Error raised site does not exist"""
+    pass
+
+
+class SiteNotRegisteredError(ValueError):
+    """Error raised when site is not registered for package lookups"""
+    pass
+
+
+class InvalidPackageError(IOError):
+    """Error raised when trying to install an invalid package"""
+    pass
+
+
+class UninstallError(IOError):
+    """Error raised when unable to uninstall package"""
     pass
