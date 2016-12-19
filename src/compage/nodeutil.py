@@ -1,6 +1,6 @@
 """Generic node object and node utility functions"""
 import uuid
-
+import collections
 
 from compage import exception
 
@@ -8,8 +8,22 @@ from compage import exception
 __all__ = ['Node', 'Tree']
 
 
+# From https://gist.github.com/hrldcpr/2012250
+def nested_tree():
+    return collections.defaultdict(nested_tree)
+
+
+def add(nested_tree, path):
+    for node in path:
+        nested_tree = nested_tree[node]
+
+
+def dicts(t):
+    return {k: dicts(t[k]) for k in t}
+
+
 class Node(object):
-    """The node object, knows which parent node it is connected to"""
+    """The node object, holds parent information"""
     def __init__(self, name, parent):
         super(Node, self).__init__()
         self._name = name
@@ -55,8 +69,13 @@ class Tree(object):
         super(Tree, self).__init__()
         self.nodes = nodes
         self._num_nodes = len(self.nodes)
+        self._root_nodes = self._get_root_nodes()
 
-    def get_root_nodes(self):
+    @property
+    def root_nodes(self):
+        return self._root_nodes
+
+    def _get_root_nodes(self):
         """Get all root nodes i.e, nodes with `None` as parent"""
         return [node for node in self.nodes if node.parent is None]
 
@@ -64,7 +83,7 @@ class Tree(object):
         """Get all leaf nodes i.e, nodes with no children"""
         visited = []
         for node in self.nodes:
-            if not [child for child in self.get_children(node, self.nodes)]:
+            if not [child for child in self.get_children(node)]:
                 if self._is_visited(visited, node):
                     continue
                 yield node
@@ -107,6 +126,19 @@ class Tree(object):
                 yield parent
                 self._add_to_visited(visited, parent)
 
+    def get_hierarchy(self, tree_node):
+        """Return heirarchy of the node with the top ancestor to the node"""
+        lineage = [l for l in self.get_lineage(tree_node) if l]
+        return [node for node in reversed(lineage)] + [tree_node]
+
+    def to_dict(self):
+        """Returns the tree as a dictionary"""
+        n_tree = nested_tree()
+        for node in self.nodes:
+            heirarchy = [node.name for node in self.get_hierarchy(node)]
+            add(n_tree, heirarchy)
+        return dicts(n_tree)
+
     def _is_visited(self, visited, node):
         if node is not None:
             return node.id in visited
@@ -115,3 +147,45 @@ class Tree(object):
     def _add_to_visited(self, visited, node):
         if node is not None:
             visited.append(node.id)
+
+
+if __name__ == '__main__':
+    import random
+    from compage import formatter
+    import pprint
+
+    def make_nodes(num_nodes=15):
+        node_names = [str(i).zfill(2) for i in range(num_nodes)]
+        nodes = []
+        curr_parent = None
+        for index, node_name in enumerate(node_names):
+            if index == 0:
+                curr_parent = None
+
+            node = Node(node_name, curr_parent)
+            nodes.append(node)
+
+            # Select a random parent for this node
+            curr_parent = random.choice(nodes)
+        return nodes
+
+    def test_get_lineage(nodes):
+        tree = Tree(nodes)
+        out = []
+        for node in nodes:
+            out.append('node: {0}'.format(node))
+            out.append(
+                'lineage: {0}'.format([n for n in tree.get_lineage(node) if n])
+            )
+            out.append('')
+
+        print formatter.format_output(out, width=79)
+
+    def test_to_dict(nodes):
+        tree = Tree(nodes)
+        return tree.to_dict()
+
+    nodes = make_nodes(100)
+    tree = Tree(nodes)
+    s = pprint.pformat(test_to_dict(nodes))
+    print s
