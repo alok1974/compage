@@ -23,22 +23,17 @@ class FileNode(nodeutil.Node):
         return self._contents
 
 
-class FileTree(object):
-    def __init__(self, root, nodes):
-        super(FileTree, self).__init__()
-        self.nodes = nodes
-        self.root = root
+class FileTree(nodeutil.Tree):
+    def __init__(self, site, nodes):
+        super(FileTree, self).__init__(nodes)
+        self.site = site
         self.num_dirs = self._get_num_dirs()
         self.num_files = self._get_num_files()
 
     def make_tree(self):
-        tree = nodeutil.Tree(self.nodes)
-        root = tree.get_root_nodes()[0].name
-        for node in tree.nodes:
-            lineage = [n.name for n in tree.get_lineage(node) if n]
-            hierarchy = [n for n in reversed(lineage)] + [node.name]
-
-            node_path = os.path.join(self.root, *hierarchy)
+        for node in self.nodes:
+            hierarchy = map(lambda node: node.name, self.get_hierarchy(node))
+            node_path = os.path.join(self.site, *hierarchy)
             if node.isdir:
                 if not os.path.exists(node_path):
                     os.makedirs(node_path)
@@ -48,7 +43,7 @@ class FileTree(object):
 
         msg = ("Created dir tree '{0}'({1} directories,"
                " {2} files) at site \"{3}\"").format(
-            root, self.num_dirs, self.num_files, self.root)
+            self.root_nodes[0].name, self.num_dirs, self.num_files, self.site)
         logger.Logger.info(msg)
 
     def _get_num_dirs(self):
