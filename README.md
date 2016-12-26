@@ -5,7 +5,7 @@ Generic reusable python utilities and tools.
 --------------------
 Code Object Manager - classes, functions and other code objects can be added as a service and retrieved when needed. Mostly helps in patterns like dependency injection.
 ```python
-from compage.services import ServiceManager as mgr
+from compage.service import ServiceManager as mgr
 
 
 # Code to be injected
@@ -15,12 +15,13 @@ class ToBeInjected(object):
 
 # Injection is expected here
 class InjectionReceiver(object):
-    def __init__(self, injectedCode):
-        self._injectedCode = injectedCode
+    def __init__(self, injected_code):
+        self._injected_code = injected_code
 
     @property
-    def injectedCode(self):
-        return self._injectedCode
+    def injected_code(self):
+        return self._injected_code
+
 
 # Injection code added to the manager
 mgr.add('injected', ToBeInjected())
@@ -29,9 +30,7 @@ mgr.add('injected', ToBeInjected())
 toBeInjected = mgr.get('injected')
 target = InjectionReceiver(toBeInjected)
 
-print target.injectedCode.foo
-
-# >>> foo
+assert target.injected_code.foo == 'foo'
 
 ```
 
@@ -39,7 +38,7 @@ print target.injectedCode.foo
 -------------------------
 Light weight package installer a la setup.py(distutils).
 ```python
-from compage.installutils import setup
+from compage.installutil import setup
 
 # install - `True` to install, `False` to uninstall
 install = True
@@ -49,13 +48,13 @@ force_update = False
 
 # site - location where the package should be installed. Note that this
 # location should be in sys.path via PYTHONPATH or use of .pth files
-site = 'path to site location'
+site = '/home/agandhi/dev/python'
 
 # package_name - Name of the installed package
 package_name = 'compage'
 
 # src_dir - Path to source code dir
-src_dir = 'path to source code dir'
+src_dir = '/home/agandhi/github/compage/src/compage/'
 
 args = [site, package_name]
 kwargs = {
@@ -65,4 +64,5 @@ kwargs = {
 }
 
 setup(*args, **kwargs)
+
 ```
