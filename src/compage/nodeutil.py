@@ -8,20 +8,6 @@ from compage import exception
 __all__ = ['Node', 'Tree']
 
 
-# From https://gist.github.com/hrldcpr/2012250
-def nested_tree():
-    return collections.defaultdict(nested_tree)
-
-
-def add(nested_tree, path):
-    for node in path:
-        nested_tree = nested_tree[node]
-
-
-def dicts(t):
-    return {k: dicts(t[k]) for k in t}
-
-
 class Node(object):
     """The node object, holds parent information"""
     def __init__(self, name, parent):
@@ -93,7 +79,7 @@ class Tree(object):
         """Depth first iterator for the given node"""
         visited = []
         yield tree_node
-        for child in self.get_children(tree_node, self.nodes):
+        for child in self.get_children(tree_node):
             for node in self.walk(child):
                 if self._is_visited(visited, node):
                     continue
@@ -133,11 +119,11 @@ class Tree(object):
 
     def to_dict(self):
         """Returns the tree as a dictionary"""
-        n_tree = nested_tree()
+        n_tree = self._nested_tree()
         for node in self.nodes:
             heirarchy = [node.name for node in self.get_hierarchy(node)]
-            add(n_tree, heirarchy)
-        return dicts(n_tree)
+            self._add_to_nested_tree(n_tree, heirarchy)
+        return self._nested_dict(n_tree)
 
     def _is_visited(self, visited, node):
         if node is not None:
@@ -148,13 +134,50 @@ class Tree(object):
         if node is not None:
             visited.append(node.id)
 
+    # From https://gist.github.com/hrldcpr/2012250
+    def _nested_tree(self):
+        return collections.defaultdict(self._nested_tree)
+
+    def _add_to_nested_tree(self, nested_tree, path):
+        for node in path:
+            nested_tree = nested_tree[node]
+
+    def _nested_dict(self, nested_tree):
+        return {k: self._nested_dict(nested_tree[k]) for k in nested_tree}
+
 
 if __name__ == '__main__':
     import random
     from compage import formatter
     import pprint
 
-    def make_nodes(num_nodes=15):
+    tree = {
+        '00': {
+            '01': {
+                '04': {
+                    '10': {},
+                },
+                '05': {
+                    '11': {
+                        '12': {},
+                    },
+                },
+            },
+            '02': {
+                '07': {
+                    '13': {},
+                },
+            },
+            '03': {
+                '09': {},
+            },
+            '06': {
+                '08': {},
+            },
+        }
+    }
+
+    def make_nodes(num_nodes):
         node_names = [str(i).zfill(2) for i in range(num_nodes)]
         nodes = []
         curr_parent = None
@@ -183,9 +206,21 @@ if __name__ == '__main__':
 
     def test_to_dict(nodes):
         tree = Tree(nodes)
-        return tree.to_dict()
+        s = pprint.pformat(tree.to_dict())
+        print s
 
-    nodes = make_nodes(100)
-    tree = Tree(nodes)
-    s = pprint.pformat(test_to_dict(nodes))
-    print s
+    def test_get_hierarchy(nodes):
+        tree = Tree(nodes)
+        leaf_nodes = list(tree.get_leaf_nodes())
+
+        # Select a random leaf node
+        leaf_node = random.choice(leaf_nodes)
+        hierarchy = tree.get_hierarchy(leaf_node)
+        pretty_hierarchy = ' || '.join(
+            ["Node('{0}')".format(node.name) for node in hierarchy])
+
+        print "node: Node('{0}')".format(leaf_node.name)
+        print 'heirarchy: {0}'.format(pretty_hierarchy)
+
+    nodes = make_nodes(300)
+    test_to_dict(nodes)

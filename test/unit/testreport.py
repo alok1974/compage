@@ -5,23 +5,59 @@ import tempfile
 import shutil
 import uuid
 import random
-import collections
 
 
-from compage import report, logger, formatter, dirutil
+from compage import report, logger, formatter, nodeutil
 
 
-class PackageNode(dirutil.FileNode):
+class FileNode(nodeutil.Node):
     def __init__(self, name, parent, isdir, imports=None):
+        super(FileNode, self).__init__(name, parent)
+        self._isdir = isdir
         self.imports = imports or []
-        self.file_contents = self._get_contents()
+        self._contents = self._get_contents()
 
-        super(PackageNode, self).__init__(
-            name, parent, isdir, self.file_contents)
+    @property
+    def isdir(self):
+        return self._isdir
+
+    @property
+    def contents(self):
+        return self._contents
 
     def _get_contents(self):
         return ''.join(
             map(lambda m: 'import {0}\n'.format(m), self.imports))
+
+
+class FileTree(nodeutil.Tree):
+    def __init__(self, site, nodes):
+        super(FileTree, self).__init__(nodes)
+        self.site = site
+        self.num_dirs = self._get_num_dirs()
+        self.num_files = self._get_num_files()
+
+    def make_tree(self):
+        for node in self.nodes:
+            hierarchy = map(lambda node: node.name, self.get_hierarchy(node))
+            node_path = os.path.join(self.site, *hierarchy)
+            if node.isdir:
+                if not os.path.exists(node_path):
+                    os.makedirs(node_path)
+            else:
+                with open(node_path, 'w') as fp:
+                    fp.write(node.contents)
+
+        msg = ("Created '{0}'({1} directories,"
+               " {2} files) at site \"{3}\"").format(
+            self.root_nodes[0].name, self.num_dirs, self.num_files, self.site)
+        logger.Logger.info(msg)
+
+    def _get_num_dirs(self):
+        return len([node for node in self.nodes if node.isdir])
+
+    def _get_num_files(self):
+        return len([node for node in self.nodes if not node.isdir])
 
 
 def validate_min_max(min, max):
@@ -74,7 +110,7 @@ def make_random_file_nodes(
     min_nodes, max_nodes = validate_min_max(min_nodes, max_nodes)
 
     # Make root node and __init__.py inside it
-    root_node, initpy_node = make_dir_node(root, None, PackageNode)
+    root_node, initpy_node = make_dir_node(root, None, FileNode)
     nodes = [root_node, initpy_node]
 
     curr_parent = root_node
@@ -88,7 +124,7 @@ def make_random_file_nodes(
 
         if isdir:
             dir_node, initpy_node = make_dir_node(
-                name, curr_parent, PackageNode)
+                name, curr_parent, FileNode)
             nodes += [dir_node, initpy_node]
         else:
             num_imports = random.randint(min_imports, max_nodes)
@@ -97,7 +133,7 @@ def make_random_file_nodes(
             name = '{0}.py'.format(name)
 
             nodes.append(
-                PackageNode(
+                FileNode(
                     name=name,
                     parent=curr_parent,
                     imports=imports,
@@ -122,7 +158,7 @@ def create_mock_package(package_name):
         max_imports=15,
     )
 
-    file_tree = dirutil.FileTree(temp_site, nodes)
+    file_tree = FileTree(temp_site, nodes)
     file_tree.make_tree()
 
     return temp_site
@@ -149,4 +185,18 @@ class TestReport(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    import pprint
+    site = '/home/agandhi/Desktop/'
+    package_name = 'compage_mock'
+    temp_site = tempfile.mkdtemp()
+    nodes = make_random_file_nodes(
+        package_name,
+        min_nodes=100,
+        max_nodes=50,
+        min_imports=20,
+        max_imports=15,
+    )
+
+    file_tree = FileTree(site, nodes)
+    pprint.pprint(file_tree.to_dict())
+    file_tree.make_tree()
