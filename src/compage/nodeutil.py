@@ -10,7 +10,7 @@ __all__ = ['Node', 'Tree']
 
 class Node(object):
     """The node object, holds parent information"""
-    def __init__(self, name, parent):
+    def __init__(self, name, parent=None):
         super(Node, self).__init__()
         self._name = name
 
@@ -20,7 +20,7 @@ class Node(object):
             raise exception.NodeCreationError(msg)
 
         self._parent = parent
-        self._id = uuid.uuid4().hex[:8]
+        self._nid = uuid.uuid4().hex[:8]
 
     @property
     def name(self):
@@ -31,11 +31,19 @@ class Node(object):
         return self._parent
 
     @property
-    def id(self):
-        return self._id
+    def nid(self):
+        return self._nid
+
+    @property
+    def short_info(self):
+        return "{0}({1}|{2})".format(
+            self.__class__.__name__,
+            self.name,
+            self.nid[:5],
+        )
 
     def __eq__(self, other):
-        return self.id == other.id
+        return self.nid == other.nid
 
     def __neq__(self, other):
         return not self == other
@@ -43,9 +51,10 @@ class Node(object):
     def __repr__(self):
         return "{0}({1}|{2}|parent='{3}|{4}')".format(
             self.__class__.__name__,
-            self.name, self.id,
+            self.name,
+            self.nid,
             self.parent.name if self.parent else None,
-            self.parent.id if self.parent else None,
+            self.parent.nid if self.parent else None,
         )
 
 
@@ -57,13 +66,14 @@ class Tree(object):
         self._num_nodes = len(self.nodes)
         self._root_nodes = self._get_root_nodes()
 
+    @classmethod
+    def from_dict(cls, d):
+        nodes = cls._create_nodes_from_dict(d)
+        return cls(nodes)
+
     @property
     def root_nodes(self):
         return self._root_nodes
-
-    def _get_root_nodes(self):
-        """Get all root nodes i.e, nodes with `None` as parent"""
-        return [node for node in self.nodes if node.parent is None]
 
     def get_leaf_nodes(self):
         """Get all leaf nodes i.e, nodes with no children"""
@@ -117,22 +127,43 @@ class Tree(object):
         lineage = [l for l in self.get_lineage(tree_node) if l]
         return [node for node in reversed(lineage)] + [tree_node]
 
-    def to_dict(self):
-        """Returns the tree as a dictionary"""
+    def to_dict(self, repr_as=None):
+        """
+        Returns the tree as a dictionary
+
+        Args:
+            `repr_as` (str, optional):
+                For displaying information, this can be set to attribute name
+                of the node like - name, nid, short_info, parent etc.
+                Default is `Node` objects.
+
+        Returns:
+            A tree structured dictionary of the `Node` objects.
+
+        """
+        def repr_func(node):
+            if repr_as is not None:
+                return getattr(node, repr_as)
+            else:
+                return node
         n_tree = self._nested_tree()
         for node in self.nodes:
-            heirarchy = [node.name for node in self.get_hierarchy(node)]
+            heirarchy = map(repr_func, [n for n in self.get_hierarchy(node)])
             self._add_to_nested_tree(n_tree, heirarchy)
         return self._nested_dict(n_tree)
 
+    def _get_root_nodes(self):
+        """Get all root nodes i.e, nodes with `None` as parent"""
+        return [node for node in self.nodes if node.parent is None]
+
     def _is_visited(self, visited, node):
         if node is not None:
-            return node.id in visited
+            return node.nid in visited
         return False
 
     def _add_to_visited(self, visited, node):
         if node is not None:
-            visited.append(node.id)
+            visited.append(node.nid)
 
     # From https://gist.github.com/hrldcpr/2012250
     def _nested_tree(self):
@@ -145,82 +176,38 @@ class Tree(object):
     def _nested_dict(self, nested_tree):
         return {k: self._nested_dict(nested_tree[k]) for k in nested_tree}
 
+    @classmethod
+    def _create_nodes_from_dict(cls, d):
+        uid_tree, name_map = cls._make_uid_tree(d)
+        node_map = {}
+        cls._create_nodes_recursively(uid_tree, name_map, node_map)
+        return node_map.values()
 
-if __name__ == '__main__':
-    import random
-    from compage import formatter
-    import pprint
+    @classmethod
+    def _make_uid_tree(cls, d):
+        uid_tree = {}
+        name_map = {}
+        cls._recurse_uid_tree(d, uid_tree, name_map)
+        return uid_tree, name_map
 
-    tree = {
-        '00': {
-            '01': {
-                '04': {
-                    '10': {},
-                },
-                '05': {
-                    '11': {
-                        '12': {},
-                    },
-                },
-            },
-            '02': {
-                '07': {
-                    '13': {},
-                },
-            },
-            '03': {
-                '09': {},
-            },
-            '06': {
-                '08': {},
-            },
-        }
-    }
+    @classmethod
+    def _recurse_uid_tree(cls, d, uid_tree, name_map):
+        for k, v in d.items():
+            new_k = uuid.uuid4().hex[:8]
+            name_map[new_k] = k
+            uid_tree[new_k] = {}
+            cls._recurse_uid_tree(v, uid_tree[new_k], name_map)
 
-    def make_nodes(num_nodes):
-        node_names = [str(i).zfill(2) for i in range(num_nodes)]
-        nodes = []
-        curr_parent = None
-        for index, node_name in enumerate(node_names):
-            if index == 0:
-                curr_parent = None
-
-            node = Node(node_name, curr_parent)
-            nodes.append(node)
-
-            # Select a random parent for this node
-            curr_parent = random.choice(nodes)
-        return nodes
-
-    def test_get_lineage(nodes):
-        tree = Tree(nodes)
-        out = []
-        for node in nodes:
-            out.append('node: {0}'.format(node))
-            out.append(
-                'lineage: {0}'.format([n for n in tree.get_lineage(node) if n])
-            )
-            out.append('')
-
-        print formatter.format_output(out, width=79)
-
-    def test_to_dict(nodes):
-        tree = Tree(nodes)
-        s = pprint.pformat(tree.to_dict())
-        print s
-
-    def test_get_hierarchy(nodes):
-        tree = Tree(nodes)
-        leaf_nodes = list(tree.get_leaf_nodes())
-
-        # Select a random leaf node
-        leaf_node = random.choice(leaf_nodes)
-        hierarchy = tree.get_hierarchy(leaf_node)
-        pretty_hierarchy = ' || '.join(
-            ["Node('{0}')".format(node.name) for node in hierarchy])
-
-        print "node: Node('{0}')".format(leaf_node.name)
-        print 'heirarchy: {0}'.format(pretty_hierarchy)
-
-    nodes = make_nodes(300)
-    test_to_dict(nodes)
+    @classmethod
+    def _create_nodes_recursively(
+            cls, uid_dict, name_map, node_map, parent_uid=None):
+        for uid in uid_dict:
+            if parent_uid is None:
+                node_map.setdefault(uid, Node(name=name_map[uid]))
+            for child_uid in uid_dict[uid]:
+                node_map.setdefault(
+                    child_uid,
+                    Node(name=name_map[child_uid], parent=node_map[uid]),
+                )
+            cls._create_nodes_recursively(
+                uid_dict[uid], name_map, node_map, parent_uid=uid)
