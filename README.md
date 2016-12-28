@@ -3,7 +3,7 @@ Generic reusable python utilities and tools.
 
 ### compage.services
 --------------------
-Code Object Manager - classes, functions and other code objects can be added as a service and retrieved when needed. Mostly helps in patterns like dependency injection.
+Classes, Functions and other Objects can be stored and retrieved when needed. Painless implementation of patterns like Dependency Injection.
 ```python
 from compage.service import ServiceManager as mgr
 
@@ -37,6 +37,9 @@ assert target.injected_code.foo == 'foo'
 ### compage.installutils
 -------------------------
 Light weight package installer a la setup.py(distutils).
+
+To install some package `foo` from the `/src/foo/` to `/custom/site-packages/`
+
 ```python
 from compage.installutil import setup
 
@@ -48,13 +51,13 @@ force_update = False
 
 # site - location where the package should be installed. Note that this
 # location should be in sys.path via PYTHONPATH or use of .pth files
-site = '/home/agandhi/dev/python'
+site = '/custom/site-packages/'
 
 # package_name - Name of the installed package
-package_name = 'compage'
+package_name = 'foo'
 
-# src_dir - Path to source code dir
-src_dir = '/home/agandhi/github/compage/src/compage/'
+# src_dir - Path to source code directory
+src_dir = '/src/foo/'
 
 args = [site, package_name]
 kwargs = {
