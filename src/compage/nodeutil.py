@@ -2,7 +2,7 @@
 import uuid
 import collections
 
-from compage import exception
+from compage import formatter, exception
 
 
 __all__ = ['Node', 'Tree']
@@ -43,6 +43,8 @@ class Node(object):
         )
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.nid == other.nid
 
     def __neq__(self, other):
@@ -97,12 +99,10 @@ class Tree(object):
                 self._add_to_visited(visited, node)
 
     def get_children(self, tree_node):
-        """Iterator for children of the given node"""
+        """Iterator for immediate children of the given node"""
         visited = []
         for node in self.nodes:
-            if node.parent is None:
-                continue
-            elif node.parent == tree_node:
+            if node.parent == tree_node:
                 if self._is_visited(visited, node):
                     continue
                 yield node
@@ -113,14 +113,16 @@ class Tree(object):
         Iterator for all parents of the given node
         starting from immediate parent
         """
+        if tree_node.parent is None:
+            return
+
         visited = []
         yield tree_node.parent
-        if tree_node.parent is not None:
-            for parent in self.get_lineage(tree_node.parent):
-                if self._is_visited(visited, parent):
-                    continue
-                yield parent
-                self._add_to_visited(visited, parent)
+        for parent in self.get_lineage(tree_node.parent):
+            if self._is_visited(visited, parent):
+                continue
+            yield parent
+            self._add_to_visited(visited, parent)
 
     def get_hierarchy(self, tree_node):
         """Return heirarchy of the node with the top ancestor to the node"""
@@ -211,3 +213,12 @@ class Tree(object):
                 )
             cls._create_nodes_recursively(
                 uid_dict[uid], name_map, node_map, parent_uid=uid)
+
+    def __eq__(self, other):
+        return self.to_dict(repr_as='nid') == other.to_dict(repr_as='nid')
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        return formatter.FormattedDict(self.to_dict(repr_as='name')).__repr__()

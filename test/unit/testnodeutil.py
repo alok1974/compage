@@ -1,6 +1,5 @@
 import random
-from compage import formatter, nodeutil, exception
-import pprint
+from compage import nodeutil, exception
 import unittest
 
 
@@ -67,87 +66,142 @@ class TestNode(unittest.TestCase):
         )
 
 
-# class TestNodeutil(unittest.TestCase):
-#     def setUp(self):
-#         self.nodes = make_random_nodes(10)
-#         self.tree_from_random_nodes = nodeutil.Tree(self.nodes)
-#         self.tree_dict = {
-#             '00': {
-#                 '01': {
-#                     '04': {
-#                         '10': {},
-#                     },
-#                     '05': {
-#                         '11': {
-#                             '12': {},
-#                         },
-#                     },
-#                 },
-#                 '02': {
-#                     '07': {
-#                         '13': {},
-#                     },
-#                 },
-#                 '03': {
-#                     '09': {},
-#                 },
-#                 '06': {
-#                     '08': {},
-#                 },
-#             },
-#             '99': {
-#                 '11': {
-#                     '48': {
-#                         '39': {},
-#                     },
-#                 },
-#                 '12': {
-#                     '54': {
-#                         '67': {},
-#                     },
-#                     '88': {
-#                         '78': {},
-#                     },
-#                 },
-#             },
+class TestNodeutil(unittest.TestCase):
+    def setUp(self):
+        self.tree_dict = {
+            'a': {
+                'b': {
+                    'c': {}
+                },
+                'd': {
+                    'e': {},
+                    'h': {
+                        'i': {},
+                        'j': {},
+                    }
+                },
+            },
+            'f': {
+                'g': {}
+            },
+        }
 
-#         }
+        self.tree = nodeutil.Tree.from_dict(self.tree_dict)
 
-#         self.tree_from_dict = nodeutil.Tree.from_dict(self.tree_dict)
+    def tearDown(self):
+        pass
 
-#         self.tree = self.tree_from_dict
+    def test_root_nodes(self):
+        root_nodes = sorted([node.name for node in self.tree.root_nodes])
+        self.assertEqual(root_nodes, ['a', 'f'])
 
-#     def tearDown(self):
-#         pass
+    def test_get_leaf_nodes(self):
+        leaf_nodes = sorted([node.name for node in self.tree.get_leaf_nodes()])
+        self.assertEqual(leaf_nodes, ['c', 'e', 'g', 'i', 'j'])
 
-#     # def test_get_lineage(self):
-#     #     nodes = self.tree.nodes
-#     #     out = []
-#     #     for node in nodes:
-#     #         out.append('node: {0}'.format(node.name))
-#     #         out.append(
-#     #             'lineage: {0}'.format(
-#     #                 [n.name for n in self.tree.get_lineage(node) if n])
-#     #         )
-#     #         out.append('')
+    def test_walk(self):
+        for root_node in sorted(self.tree.root_nodes, key=lambda n: n.name):
+            node_names_string = ''.join(
+                sorted([node.name for node in self.tree.walk(root_node)]))
+            if root_node.name == 'a':
+                expected_string = 'abcdehij'
+            else:
+                expected_string = 'fg'
+            self.assertEqual(node_names_string, expected_string)
 
-#     #     print formatter.format_output(out, width=79)
+    def test_get_children(self):
+        children_map = {
+            'a': ['b', 'd'],
+            'b': ['c'],
+            'c': [],
+            'd': ['e', 'h'],
+            'e': [],
+            'f': ['g'],
+            'g': [],
+            'h': ['i', 'j'],
+            'i': [],
+            'j': [],
+        }
 
-#     # def test_to_dict(self):
-#     #     repr_as = 'name'
-#     #     s = pprint.pformat(self.tree.to_dict(repr_as=repr_as))
-#     #     print s
+        for node in self.tree.nodes:
+            children = sorted(
+                [child.name for child in self.tree.get_children(node)])
+            self.assertEqual(children, children_map.get(node.name))
 
-#     # def test_get_hierarchy(self):
-#     #     leaf_nodes = list(self.tree.get_leaf_nodes())
+    def test_get_lineage(self):
+        lineage_map = {
+            'a': [],
+            'b': ['a'],
+            'c': ['b', 'a'],
+            'd': ['a'],
+            'e': ['d', 'a'],
+            'f': [],
+            'g': ['f'],
+            'h': ['d', 'a'],
+            'i': ['h', 'd', 'a'],
+            'j': ['h', 'd', 'a'],
+        }
 
-#     #     for leaf_node in leaf_nodes:
-#     #         hierarchy = self.tree.get_hierarchy(leaf_node)
-#     #         pretty_hierarchy = ' || '.join(
-#     #             ["Node('{0}')".format(node.name) for node in hierarchy])
+        for node in sorted(self.tree.nodes, key=lambda n: n.name):
+            lineage = [n.name for n in self.tree.get_lineage(node)]
+            self.assertEqual(lineage, lineage_map.get(node.name))
 
-#     #         print "node: Node('{0}')".format(leaf_node.name)
-#     #         print 'heirarchy: {0}'.format(pretty_hierarchy)
+    def test_get_hierarchy(self):
+        hierarchy_map = {
+            'a': '/a',
+            'b': '/a/b',
+            'c': '/a/b/c',
+            'd': '/a/d',
+            'e': '/a/d/e',
+            'f': '/f',
+            'g': '/f/g',
+            'h': '/a/d/h',
+            'i': '/a/d/h/i',
+            'j': '/a/d/h/j',
+        }
+
+        for node in sorted(self.tree.nodes, key=lambda n: n.name):
+            hierarchy = ''.join(
+                sorted(
+                    ['/{0}'.format(node.name)
+                     for node in self.tree.get_hierarchy(node)],
+                ),
+            )
+            self.assertEqual(hierarchy, hierarchy_map.get(node.name))
+
+    def test_to_dict(self):
+        self.assertEqual(self.tree.to_dict(repr_as='name'), self.tree_dict)
+
+    def test_eq(self):
+        tree = self.tree
+        self.assertEqual(tree, self.tree)
+
+    def test_neq(self):
+        tree = nodeutil.Tree.from_dict(self.tree_dict)
+        self.assertNotEqual(tree, self.tree)
+
+    def test_repr(self):
+        expected_string = (
+            '{\n'
+            '    "a": {\n'
+            '        "b": {\n'
+            '            "c": {}\n'
+            '        }, \n'
+            '        "d": {\n'
+            '            "h": {\n'
+            '                "i": {}, \n'
+            '                "j": {}\n'
+            '            }, \n'
+            '            "e": {}\n'
+            '        }\n'
+            '    }, \n'
+            '    "f": {\n'
+            '        "g": {}\n'
+            '    }\n'
+            '}'
+        )
+
+        self.assertEqual(self.tree.__repr__(), expected_string)
 
 
 if __name__ == '__main__':
