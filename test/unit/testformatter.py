@@ -6,7 +6,7 @@ from compage import formatter
 
 class TestFormatters(unittest.TestCase):
     def setUp(self):
-        self.formatted_dict_string = (
+        self.dict_string = (
             '{\n'
             '    "foo": [\n'
             '        "bar"\n'
@@ -14,8 +14,10 @@ class TestFormatters(unittest.TestCase):
             '}'
         )
 
-        self.formatted_dict = formatter.FormattedDict(list)
-        self.formatted_dict['foo'].append('bar')
+        self.formatted_dict = formatter.FormattedDict()
+        self.formatted_dict['foo'] = ['bar']
+        self.formatted_default_dict = formatter.FormattedDefaultDict(list)
+        self.formatted_default_dict['foo'].append('bar')
         self.width01 = 79
         self.width02 = 3
         self.msg = "Foo"
@@ -41,11 +43,15 @@ class TestFormatters(unittest.TestCase):
 
     def test_formatted_dict_repr(self):
         self.assertEquals(
-            self.formatted_dict.__repr__(), self.formatted_dict_string)
+            self.formatted_dict.__repr__(),
+            self.dict_string,
+        )
 
-    def test_formatted_dict_str(self):
+    def test_formatted_default_dict_repr(self):
         self.assertEquals(
-            self.formatted_dict.__str__(), self.formatted_dict_string)
+            self.formatted_default_dict.__repr__(),
+            self.dict_string,
+        )
 
     def test_wrap(self):
         self.assertEquals(formatter.wrap(self.msg, width=1), "F\no\no")

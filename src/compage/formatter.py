@@ -9,6 +9,7 @@ import re
 
 __all__ = [
     'FormattedDict',
+    'FormattedDefaultDict',
     'wrap',
     'format_iterable',
     'format_header',
@@ -18,20 +19,19 @@ __all__ = [
 ]
 
 
-class FormattedDict(collections.defaultdict):
-    """Wrapper for pretty formatting the default dict using json.dumps"""
-    def __init__(self, default_factory):
-        super(FormattedDict, self).__init__(
-            default_factory)
-
-    def __str__(self):
-        return self._format()
-
+class FormattedDict(dict):
     def __repr__(self):
         return self._format()
 
     def _format(self):
         return json.dumps(self, indent=4)
+
+
+class FormattedDefaultDict(FormattedDict, collections.defaultdict):
+    """Wrapper for pretty formatting the default dict using json.dumps"""
+    def __init__(self, default_factory):
+        super(FormattedDefaultDict, self).__init__(
+            default_factory)
 
 
 def wrap(to_wrap, width=70):
