@@ -60,7 +60,8 @@ class FileTree(nodeutil.Tree):
         return len([node for node in self.nodes if not node.isdir])
 
 
-def validate_min_max(min, max):
+def validate_min_max(min_max):
+    min, max = min_max
     if max < min:
         max = min
     return min, max
@@ -96,18 +97,11 @@ def make_dir_node(node_name, parent, node_class):
     return dir_node, initpy_node
 
 
-def make_random_file_nodes(
-        root,
-        min_nodes=10,
-        max_nodes=20,
-        min_imports=5,
-        max_imports=8,
-):
+def random_filenodes(root, min_max_nodes, min_max_imports):
     """Creates tree from random nodes"""
-
-    min_imports, max_imports = validate_min_max(min_imports, max_imports)
+    min_imports, max_imports = validate_min_max(min_max_imports)
     max_imports = validate_max_imports(max_imports)
-    min_nodes, max_nodes = validate_min_max(min_nodes, max_nodes)
+    min_nodes, max_nodes = validate_min_max(min_max_nodes)
 
     # Make root node and __init__.py inside it
     root_node, initpy_node = make_dir_node(root, None, FileNode)
@@ -148,18 +142,41 @@ def make_random_file_nodes(
     return nodes
 
 
+def make_mock_package(site, package_name):
+    import pprint
+    nodes = random_filenodes(
+        package_name,
+        min_max_nodes=(10, 15),
+        min_max_imports=(5, 10),
+    )
+
+    file_tree = FileTree(site, nodes)
+    pprint.pprint(file_tree.to_dict())
+    file_tree.make_tree()
+
+    print file_tree
+
+
 def create_mock_package(package_name):
     temp_site = tempfile.mkdtemp()
-    nodes = make_random_file_nodes(
+    nodes = random_filenodes(
         package_name,
-        min_nodes=100,
-        max_nodes=50,
-        min_imports=20,
-        max_imports=15,
+        min_max_nodes=(100, 150),
+        min_max_imports=(5, 10),
     )
 
     file_tree = FileTree(temp_site, nodes)
     file_tree.make_tree()
+
+    s = str(file_tree)
+    s = s.replace('\": {}', '')
+    s = s.replace('\": {', '')
+    s = s.replace('"', '|___  ')
+    s = s.replace('},', '')
+    s = s.replace('}', '')
+    s = s.replace(',', '')
+    s = s.replace('{', '')
+    print s
 
     return temp_site
 
@@ -169,7 +186,7 @@ class TestReport(unittest.TestCase):
         self.package_name = 'mock_package'
         self.package_root = create_mock_package(self.package_name)
         self.import_reporter = report.ImportReporter(
-            self.package_root, required_packages=['os'], width=79)
+            self.package_root, width=79)
 
     def tearDown(self):
         if os.path.exists(self.package_root):
@@ -179,24 +196,11 @@ class TestReport(unittest.TestCase):
             logger.Logger.info(msg)
 
     def testimportreporter(self):
-        print self.import_reporter.modules
+        pass
+        # print self.import_reporter.modules
         # print self.import_reporter.import_report()
         # print self.import_reporter.rank_report()
 
 
 if __name__ == '__main__':
-    import pprint
-    site = '/home/agandhi/Desktop/'
-    package_name = 'compage_mock'
-    temp_site = tempfile.mkdtemp()
-    nodes = make_random_file_nodes(
-        package_name,
-        min_nodes=100,
-        max_nodes=50,
-        min_imports=20,
-        max_imports=15,
-    )
-
-    file_tree = FileTree(site, nodes)
-    pprint.pprint(file_tree.to_dict())
-    file_tree.make_tree()
+    unittest.main()
