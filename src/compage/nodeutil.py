@@ -1,4 +1,4 @@
-"""Generic node object and node utility functions"""
+"""Generic Node and Tree Objects"""
 import uuid
 import collections
 
