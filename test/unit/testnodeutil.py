@@ -172,6 +172,9 @@ class TestNodeutil(unittest.TestCase):
     def test_to_dict(self):
         self.assertEqual(self.tree.to_dict(repr_as='name'), self.tree_dict)
 
+    def test_render(self):
+        print self.tree.render()
+
     def test_eq(self):
         tree = self.tree
         self.assertEqual(tree, self.tree)

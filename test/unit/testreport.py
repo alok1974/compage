@@ -167,16 +167,7 @@ def create_mock_package(package_name):
 
     file_tree = FileTree(temp_site, nodes)
     file_tree.make_tree()
-
-    s = str(file_tree)
-    s = s.replace('\": {}', '')
-    s = s.replace('\": {', '')
-    s = s.replace('"', '|___  ')
-    s = s.replace('},', '')
-    s = s.replace('}', '')
-    s = s.replace(',', '')
-    s = s.replace('{', '')
-    print s
+    print file_tree.render()
 
     return temp_site
 

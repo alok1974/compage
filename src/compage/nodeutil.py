@@ -154,6 +154,17 @@ class Tree(object):
             self._add_to_nested_tree(n_tree, heirarchy)
         return self._nested_dict(n_tree)
 
+    def render(self):
+        to_render = str(self)
+        replacers = (
+            ('\": {}', ''), ('\": {', ''), ('"', '\___  '), ('},', ''),
+            ('}', ''), (',', ''), ('{', ''),
+        )
+        for (replace_part, replace_by) in replacers:
+            to_render = to_render.replace(replace_part, replace_by)
+
+        return to_render
+
     def _get_root_nodes(self):
         """Get all root nodes i.e, nodes with `None` as parent"""
         return [node for node in self.nodes if node.parent is None]
