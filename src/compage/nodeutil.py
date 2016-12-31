@@ -68,6 +68,15 @@ class Tree(object):
         self._num_nodes = len(self.nodes)
         self._root_nodes = self._get_root_nodes()
 
+        # characters for rendering tree
+        self._pipe_char = '|'
+        self._node_end_char = '_'
+        self._indentation_char = ' '
+        self._indent = 4
+        self._indentation = self._indent * self._indentation_char
+        self._node_char = '{0}{1} '.format(
+            self._pipe_char, self._node_end_char * max([1, self._indent - 1]))
+
     @classmethod
     def from_dict(cls, d):
         nodes = cls._create_nodes_from_dict(d)
@@ -96,6 +105,18 @@ class Tree(object):
                 if self._is_visited(visited, node):
                     continue
                 yield node
+                self._add_to_visited(visited, node)
+
+    def walk_with_level(self, tree_node, level=0):
+        """Depth first iterator for the given node"""
+        visited = []
+        yield tree_node, level
+        for child in sorted(
+                self.get_children(tree_node), key=lambda n: n.name):
+            for node, this_level in self.walk_with_level(child, level + 1):
+                if self._is_visited(visited, node):
+                    continue
+                yield node, this_level
                 self._add_to_visited(visited, node)
 
     def get_children(self, tree_node):
@@ -155,15 +176,49 @@ class Tree(object):
         return self._nested_dict(n_tree)
 
     def render(self):
-        to_render = str(self)
-        replacers = (
-            ('\": {}', ''), ('\": {', ''), ('"', '\___  '), ('},', ''),
-            ('}', ''), (',', ''), ('{', ''),
-        )
-        for (replace_part, replace_by) in replacers:
-            to_render = to_render.replace(replace_part, replace_by)
+        """Returns the tree structure as a string"""
+        out = []
+        levels = []
+        for root_node in sorted(self.root_nodes, key=lambda n: n.name):
+            for node, level in self.walk_with_level(root_node):
+                for index, (lv, out_string) in enumerate(
+                        zip(reversed(levels), reversed(out))):
+                    if lv == level - 1:
+                        break
+                    if lv > level:
+                        new_out_string = self._add_level_to_string(
+                            level,
+                            out_string,
+                        )
+                        out[len(out) - 1 - index] = new_out_string
+                levels.append(level)
+                out.append('{0}{1}{2}'.format(
+                    self._indentation * level,
+                    self._node_char,
+                    node.name,
+                    ),
+                )
+        return '\n'.join(self._add_spacing(out))
 
-        return to_render
+    def _add_spacing(self, lines):
+        out = []
+        for index, string in enumerate(lines):
+            out.append(string)
+            if index + 1 < len(lines):
+                spacer = []
+                for char in lines[index + 1]:
+                    if char != self._pipe_char:
+                        spacer.append(self._indentation_char)
+                    else:
+                        spacer.append(self._pipe_char)
+                spacer_string = ''.join(spacer).rstrip(self._indentation_char)
+                out.append(spacer_string)
+        return out
+
+    def _add_level_to_string(self, level, string):
+        string_levels = string.split(self._indentation)
+        string_levels[level] = self._pipe_char
+        return (self._indentation).join(string_levels)
 
     def _get_root_nodes(self):
         """Get all root nodes i.e, nodes with `None` as parent"""
