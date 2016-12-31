@@ -84,6 +84,7 @@ class Tree(object):
 
     @property
     def root_nodes(self):
+        """All root nodes, i.e. nodes with `None` as parent"""
         return self._root_nodes
 
     def get_leaf_nodes(self):
@@ -224,7 +225,6 @@ class Tree(object):
         return (self._indentation).join(string_levels)
 
     def _get_root_nodes(self):
-        """Get all root nodes i.e, nodes with `None` as parent"""
         return [node for node in self.nodes if node.parent is None]
 
     def _is_visited(self, visited, node):
