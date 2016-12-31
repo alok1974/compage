@@ -108,7 +108,10 @@ class Tree(object):
                 self._add_to_visited(visited, node)
 
     def walk_with_level(self, tree_node, level=0):
-        """Depth first iterator for the given node"""
+        """
+        Depth first iterator for the given node
+        also yields level for each child
+        """
         visited = []
         yield tree_node, level
         for child in sorted(
