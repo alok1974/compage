@@ -38,7 +38,7 @@ assert target.injected_code.foo == 'foo'
 -------------------------
 Light weight package installer a la setup.py(distutils).
 
-To install some package `foo` from the `/src/foo/` to `/custom/site-packages/`
+Example: Install package `foo` from the `/src/foo/` to `/custom/site-packages/`
 
 ```python
 from compage.installutil import setup
@@ -50,10 +50,10 @@ install = True
 force_update = False
 
 # site - location where the package should be installed. Note that this
-# location should be in sys.path via PYTHONPATH or use of .pth files
+# location should be in sys.path
 site = '/custom/site-packages/'
 
-# package_name - Name of the installed package
+# package_name - Name of the package to install
 package_name = 'foo'
 
 # src_dir - Path to source code directory
