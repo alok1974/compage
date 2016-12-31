@@ -79,6 +79,7 @@ class Tree(object):
 
     @classmethod
     def from_dict(cls, d):
+        """Creates a Tree from dictionary"""
         nodes = cls._create_nodes_from_dict(d)
         return cls(nodes)
 
