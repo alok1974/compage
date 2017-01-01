@@ -10,17 +10,16 @@ __all__ = ['Node', 'Tree']
 
 class Node(object):
     """The node object, holds parent information"""
-    def __init__(self, name, parent=None):
-        super(Node, self).__init__()
-        self._name = name
-
-        if parent is not None and not isinstance(parent, Node):
+    def __init__(self, name, parent=None, nid=None):
+        if not self._valid_parent(parent):
             msg = "parent '{0}' should be of type {1} or None".format(
                 parent, Node)
             raise exception.NodeCreationError(msg)
 
+        super(Node, self).__init__()
+        self._name = name
         self._parent = parent
-        self._nid = uuid.uuid4().hex[:8]
+        self._nid = nid or uuid.uuid4().hex[:8]
 
     @property
     def name(self):
@@ -41,6 +40,9 @@ class Node(object):
             self.name,
             self.nid[:5],
         )
+
+    def _valid_parent(self, parent):
+        return parent is None or isinstance(parent, Node)
 
     def __eq__(self, other):
         if other is None:
@@ -63,30 +65,74 @@ class Node(object):
 class Tree(object):
     """Provides queries on the given node objects"""
     def __init__(self, nodes):
+        if not self._unique(nodes):
+            msg = "Some of the nodes have same nids, unable to create tree"
+            raise exception.TreeCreationError(msg)
+
         super(Tree, self).__init__()
         self.nodes = nodes
         self._num_nodes = len(self.nodes)
         self._root_nodes = self._get_root_nodes()
-
-        # characters for rendering tree
-        self._pipe_char = '|'
-        self._node_end_char = '_'
-        self._indentation_char = ' '
-        self._indent = 4
-        self._indentation = self._indent * self._indentation_char
-        self._node_char = '{0}{1} '.format(
-            self._pipe_char, self._node_end_char * max([1, self._indent - 1]))
+        self._setup_render_chars()
 
     @classmethod
-    def from_dict(cls, d):
-        """Creates a Tree from dictionary"""
-        nodes = cls._create_nodes_from_dict(d)
+    def from_dict(cls, tree_dict, node_cls=None):
+        """
+        Creates a Tree from dictionary
+
+        Args:
+            tree_dict (dict)
+                A nested dictionary specifying the tree stucture.
+                All keys must be strings and leaf nodes should have `{}` as
+                value.
+
+                For example, a tree like
+
+                |__ root
+                    |
+                    |__ node1
+                    |
+                    |__ node2
+                    |   |
+                    |   |__node3
+                    |   |
+                    |   |__node4
+                    |
+                    |__node5
+
+                should have a tree_dict as
+                {
+                    'root': {
+                        'node1': {},
+                        'node2': {
+                            'node3': {},
+                            'node4': {},
+                        },
+                        'node5': {},
+                    },
+                }
+
+            node_cls (class, optional):
+                A class for creating nodes. If not given the default
+                nodeutil.Node class is used for node creation.
+
+            Returns:
+                `Tree` object
+
+        """
+        cls.node_cls = node_cls or Node
+        nodes = cls._create_nodes_from_dict(tree_dict)
         return cls(nodes)
 
     @property
     def root_nodes(self):
         """All root nodes, i.e. nodes with `None` as parent"""
         return self._root_nodes
+
+    def find(self, attr_name, attr_value):
+        """Finds nodes with the given node attribute and value"""
+        return [node for node in self.nodes
+                if getattr(node, attr_name) == attr_value]
 
     def get_leaf_nodes(self):
         """Get all leaf nodes i.e, nodes with no children"""
@@ -98,31 +144,27 @@ class Tree(object):
                 yield node
                 self._add_to_visited(visited, node)
 
-    def walk(self, tree_node):
-        """Depth first iterator for the given node"""
-        visited = []
-        yield tree_node
-        for child in self.get_children(tree_node):
-            for node in self.walk(child):
-                if self._is_visited(visited, node):
-                    continue
-                yield node
-                self._add_to_visited(visited, node)
-
-    def walk_with_level(self, tree_node, level=0):
+    def walk(self, tree_node, get_level=False):
         """
         Depth first iterator for the given node
-        also yields level for each child
+
+        Args:
+            tree_node (Node):
+                The `Node` object to start walking from
+
+            get_level (bool, optional):
+                If `True` will return the level of the node
+
+        Returns:
+            Node and optionally the depth level of the node. `0` is
+            the first level.
         """
-        visited = []
-        yield tree_node, level
-        for child in sorted(
-                self.get_children(tree_node), key=lambda n: n.name):
-            for node, this_level in self.walk_with_level(child, level + 1):
-                if self._is_visited(visited, node):
-                    continue
-                yield node, this_level
-                self._add_to_visited(visited, node)
+
+        for node, level in self._walk(tree_node):
+            if get_level:
+                yield node, level
+            else:
+                yield node
 
     def get_children(self, tree_node):
         """Iterator for immediate children of the given node"""
@@ -160,7 +202,7 @@ class Tree(object):
         Returns the tree as a dictionary
 
         Args:
-            `repr_as` (str, optional):
+            repr_as (str, optional):
                 For displaying information, this can be set to attribute name
                 of the node like - name, nid, short_info, parent etc.
                 Default is `Node` objects.
@@ -185,7 +227,7 @@ class Tree(object):
         out = []
         levels = []
         for root_node in sorted(self.root_nodes, key=lambda n: n.name):
-            for node, level in self.walk_with_level(root_node):
+            for node, level in self.walk(root_node, get_level=True):
                 for index, (lv, out_string) in enumerate(
                         zip(reversed(levels), reversed(out))):
                     if lv == level - 1:
@@ -204,6 +246,27 @@ class Tree(object):
                     ),
                 )
         return '\n'.join(self._add_spacing(out))
+
+    def _setup_render_chars(self):
+        # characters for rendering tree
+        self._pipe_char = '|'
+        self._node_end_char = '_'
+        self._indentation_char = ' '
+        self._indent = 4
+        self._indentation = self._indent * self._indentation_char
+        self._node_char = '{0}{1} '.format(
+            self._pipe_char, self._node_end_char * max([1, self._indent - 1]))
+
+    def _walk(self, tree_node, level=0):
+        visited = []
+        yield tree_node, level
+        for child in sorted(
+                self.get_children(tree_node), key=lambda n: n.name):
+            for node, node_level in self._walk(child, level + 1):
+                if self._is_visited(visited, node):
+                    continue
+                yield node, node_level
+                self._add_to_visited(visited, node)
 
     def _add_spacing(self, lines):
         out = []
@@ -275,14 +338,19 @@ class Tree(object):
             cls, uid_dict, name_map, node_map, parent_uid=None):
         for uid in uid_dict:
             if parent_uid is None:
-                node_map.setdefault(uid, Node(name=name_map[uid]))
+                node_map.setdefault(uid, cls.node_cls(name=name_map[uid]))
             for child_uid in uid_dict[uid]:
                 node_map.setdefault(
                     child_uid,
-                    Node(name=name_map[child_uid], parent=node_map[uid]),
+                    cls.node_cls(
+                        name=name_map[child_uid], parent=node_map[uid]),
                 )
             cls._create_nodes_recursively(
                 uid_dict[uid], name_map, node_map, parent_uid=uid)
+
+    def _unique(self, nodes):
+        nids = [node.nid for node in nodes]
+        return len(nids) == len(list(set(nids)))
 
     def __eq__(self, other):
         return self.to_dict(repr_as='nid') == other.to_dict(repr_as='nid')

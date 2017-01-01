@@ -1,10 +1,5 @@
-"""Various Reporter Objects"""
-from compage import introspection
-from compage.formatter import (
-    format_header,
-    format_iterable,
-    format_output
-)
+"""Various Reporters"""
+from compage import introspection, formatter
 
 __all__ = ['ImportReporter']
 
@@ -38,7 +33,7 @@ class ImportReporter(object):
         return self._rank
 
     def module_report(self, module_name):
-        return format_output(
+        return formatter.format_output(
             self._get_module_report(module_name), width=self._width)
 
     def _get_import_data(self, package_root):
@@ -49,26 +44,26 @@ class ImportReporter(object):
 
     def _get_report(self):
         out = []
-        report_header = '\n\nImport Report'
+        report_header = '\nImport Report'
         out.append(report_header)
-        for module_name in self._import_data:
+        for module_name in sorted(self._import_data.keys()):
             out += self._get_module_report(module_name, has_header=True)
 
         if not self._required_packages:
-            return format_output(out, width=self._width)
+            return formatter.format_output(out, width=self._width)
 
         required_extras = sorted(
             set(self._required_packages).difference(self._import_data.keys()))
         if required_extras:
             msg = 'Following packages are required but never imported:'
-            out.append(format_header(msg=msg, width=self._width))
-            out.append(format_iterable(required_extras))
-        return format_output(out, width=self._width)
+            out.append(formatter.format_header(msg=msg, width=self._width))
+            out.append(formatter.format_iterable(required_extras))
+        return formatter.format_output(out, width=self._width)
 
     def _get_module_report(self, module_name, has_header=False):
         out = []
         if not has_header:
-            report_header = ("\n\nImport Report for '{0}'").format(module_name)
+            report_header = ("\nImport Report for '{0}'").format(module_name)
             out.append(report_header)
 
         if module_name not in self._module_reports:
@@ -97,9 +92,10 @@ class ImportReporter(object):
 
         msg = "Module Name: '{0}'{1}".format(
             module_name, required)
-        out.append(format_header(msg=msg, width=self._width))
+        out.append(formatter.format_header(msg=msg, width=self._width))
 
-        for file_path, import_data in module_data.items():
+        for file_path in sorted(module_data.keys()):
+            import_data = module_data[file_path]
             out.append('"{0}"'.format(file_path))
             for (lineno, line) in import_data:
                 msg = "line {0}:\n{1}".format(lineno, line)

@@ -57,3 +57,8 @@ class UninstallError(IOError):
 class NodeCreationError(ValueError):
     """Error raised when unable to create node"""
     pass
+
+
+class TreeCreationError(ValueError):
+    """Error raised when unable to create tree"""
+    pass
