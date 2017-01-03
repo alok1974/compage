@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 PACKAGE_NAME = 'compage'
-PACKAGE_VERSION = '0.0.1'
+PACKAGE_VERSION = '1.0.0'
 
 setup(
     name=PACKAGE_NAME,
