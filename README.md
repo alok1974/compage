@@ -38,7 +38,7 @@ assert target.injected_code.foo == 'foo'
 -------------------------
 Light weight package installer a la setup.py(distutils).
 
-Example: Install package `foo` from the `/src/foo/` to `/custom/site-packages/`
+Example: Installs package `foo` from the `/src/foo/` to `/custom/site-packages/`
 
 ```python
 from compage.installutil import setup

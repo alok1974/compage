@@ -56,7 +56,7 @@ class TestNode(unittest.TestCase):
         )
 
 
-class TestNodeutil(unittest.TestCase):
+class TestTree(unittest.TestCase):
     def setUp(self):
         self.tree_dict = {
             'a': {

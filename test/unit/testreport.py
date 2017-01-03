@@ -4,17 +4,17 @@ import tempfile
 import shutil
 import uuid
 import random
-import collections
 import pkgutil
+import collections
 
 
 from compage import report, logger, formatter, nodeutil
 
 
 class FileNode(nodeutil.Node):
-    def __init__(self, name, parent=None, isdir=None, imports=None):
+    def __init__(self, name, isdir, imports, parent=None):
         super(FileNode, self).__init__(name=name, parent=parent)
-        self.isdir = isdir or True
+        self.isdir = isdir
         self.imports = imports or []
 
     @property
@@ -23,7 +23,7 @@ class FileNode(nodeutil.Node):
 
 
 class FileTree(nodeutil.Tree):
-    def __init__(self, nodes, site=None):
+    def __init__(self, nodes, site):
         super(FileTree, self).__init__(nodes=nodes)
         self.site = site
 
@@ -57,7 +57,7 @@ class FileTree(nodeutil.Tree):
 
 def validate_min_max(min_num, max_num):
     if min_num > max_num:
-        min_num = max
+        min_num = max_num
     return min_num, max_num
 
 
@@ -72,8 +72,8 @@ def is_module_name_valid(module_name):
             and all(map(str.islower, [char for char in module_name])))
 
 
-def make_dir_node(node_name, parent, node_class):
-    dir_node = node_class(
+def make_dir_node(node_name, parent):
+    dir_node = FileNode(
         name=node_name,
         parent=parent,
         imports=None,
@@ -81,7 +81,7 @@ def make_dir_node(node_name, parent, node_class):
     )
 
     # Make __init__.py Node for dir node
-    initpy_node = node_class(
+    initpy_node = FileNode(
         name='__init__.py',
         parent=dir_node,
         imports=None,
@@ -93,11 +93,12 @@ def make_dir_node(node_name, parent, node_class):
 
 def create_random_filenodes(root, min_max_nodes, min_max_imports):
     """Creates tree from random nodes"""
+    import_map = {}
     min_imports, max_imports = validate_min_max_imports(*min_max_imports)
     min_nodes, max_nodes = validate_min_max(*min_max_nodes)
 
     # Make root node and __init__.py inside it
-    root_node, initpy_node = make_dir_node(root, None, FileNode)
+    root_node, initpy_node = make_dir_node(root, None)
     nodes = [root_node, initpy_node]
 
     curr_parent = root_node
@@ -105,14 +106,13 @@ def create_random_filenodes(root, min_max_nodes, min_max_imports):
                     if is_module_name_valid(m)]
     num_nodes = random.randint(min_nodes, max_nodes)
     for i in range(num_nodes):
-        name = formatter.hex_to_alpha(uuid.uuid4().hex[:5])
+        name = formatter.hex_to_alpha(uuid.uuid4().hex)
 
         # Randomize dir creation
         isdir = bool(random.randint(0, 1))
 
         if isdir:
-            dir_node, initpy_node = make_dir_node(
-                name, curr_parent, FileNode)
+            dir_node, initpy_node = make_dir_node(name, curr_parent)
             nodes += [dir_node, initpy_node]
         else:
             num_imports = random.randint(min_imports, max_imports)
@@ -126,27 +126,29 @@ def create_random_filenodes(root, min_max_nodes, min_max_imports):
                     name=name,
                     parent=curr_parent,
                     imports=imports,
-                    isdir=isdir,
+                    isdir=False,
                 )
             )
+
+            # Add file node to import map
+            import_map[name] = imports
 
         # Randomize going up or down the tree
         # by selecting a random upstream dir
         curr_parent = random.choice([n for n in nodes if n.isdir])
 
-    return nodes
+    return nodes, import_map
 
 
 def make_mock_package(site, package_name):
-    nodes = create_random_filenodes(
+    nodes, _ = create_random_filenodes(
         package_name,
-        min_max_nodes=(100, 200),
-        min_max_imports=(5, 10),
+        min_max_nodes=(5, 8),
+        min_max_imports=(1, 3),
     )
 
     file_tree = FileTree(nodes, site)
     file_tree.make_tree(log_msg=True)
-    print file_tree.render()
 
 
 class TestImportReporter(unittest.TestCase):
@@ -154,40 +156,9 @@ class TestImportReporter(unittest.TestCase):
         self.log_msg = False
         self.package_name = 'mock_package'
         self.package_root = tempfile.mkdtemp()
-        self.dir_tree = {
-            'mock_package': {
-                '__init__.py': {},
-                'dir_01': {
-                    '__init__.py': {},
-                    'file_01.py': {},
-                    'dir_02': {
-                        '__init__.py': {},
-                        'file_02.py': {},
-                        'dir_03': {
-                            '__init__.py': {},
-                            'file_03.py': {},
-                            'file_04.py': {},
-                        },
-                    },
-                },
-                'dir_04': {
-                    '__init__.py': {},
-                    'file_05.py': {},
-                },
-            },
-        }
-        self.import_map = {
-            'file_01.py': ['os', 'sys', 'math', 'shutil'],
-            'file_02.py': ['os', 'sys', 'shutil'],
-            'file_03.py': ['sys', 'math', 'shutil'],
-            'file_04.py': ['collections', 'abc', '_weakref'],
-            'file_05.py': ['genericpath', 'errno', 'warnings', 'signal'],
-            '__init__.py': [],
-        }
-
         self.width = 79
         self.required_packages = []
-        self.file_tree = self._make_tree()
+        self.file_tree, self.import_map = self._make_tree()
         self.file_paths = self._get_file_paths()
         self.import_reporter = report.ImportReporter(
             self.package_root,
@@ -196,14 +167,16 @@ class TestImportReporter(unittest.TestCase):
         )
 
     def _make_tree(self):
-        file_tree = FileTree.from_dict(self.dir_tree, node_cls=FileNode)
-        for node in file_tree.nodes:
-            node.imports = self.import_map.get(node.name)
-            node.isdir = node.name not in self.import_map
+        nodes, import_map = create_random_filenodes(
+            self.package_name,
+            min_max_nodes=(20, 30),
+            min_max_imports=(5, 8),
+        )
 
-        file_tree.site = self.package_root
+        file_tree = FileTree(nodes, self.package_root)
         file_tree.make_tree(log_msg=self.log_msg)
-        return file_tree
+
+        return file_tree, import_map
 
     def _get_file_paths(self):
         file_paths = {}
@@ -218,17 +191,16 @@ class TestImportReporter(unittest.TestCase):
                    for node in self.file_tree.get_hierarchy(file_node)]
             )
             file_paths[file_name] = file_path
-
         return file_paths
 
     def _get_module_report(self, module_name, has_header=False):
         out = []
-        file_paths = []
+        import_data = {}
         for file_name, imports in self.import_map.iteritems():
             for index, import_name in enumerate(imports):
                 if import_name == module_name:
-                    file_paths.append(
-                        (self.file_paths.get(file_name), index + 1))
+                    import_data.setdefault(
+                        self.file_paths.get(file_name), []).append(index + 1)
 
         if not has_header:
             report_header = ("\nImport Report for '{0}'").format(module_name)
@@ -245,11 +217,12 @@ class TestImportReporter(unittest.TestCase):
         msg = "Module Name: '{0}'{1}".format(module_name, required)
         out.append(formatter.format_header(msg=msg, width=self.width))
 
-        for file_path, lineno in sorted(file_paths):
+        for file_path in sorted(import_data.keys()):
             out.append('"{0}"'.format(file_path))
-            line = 'import {0}\n'.format(module_name)
-            msg = "line {0}:\n{1}".format(lineno, line)
-            out.append(msg)
+            for lineno in import_data[file_path]:
+                line = 'import {0}\n'.format(module_name)
+                msg = "line {0}:\n{1}".format(lineno, line)
+                out.append(msg)
 
         return out
 
@@ -305,15 +278,13 @@ class TestImportReporter(unittest.TestCase):
 
     def test_module_report(self):
         for module in self.import_reporter.modules:
-            module_report = formatter.format_output(
+            test_module_report = formatter.format_output(
                 self._get_module_report(module),
                 width=self.width,
             )
 
-            self.assertEqual(
-                self.import_reporter.module_report(module),
-                module_report,
-            )
+            reporter_module_report = self.import_reporter.module_report(module)
+            self.assertEqual(reporter_module_report, test_module_report)
 
 
 if __name__ == '__main__':

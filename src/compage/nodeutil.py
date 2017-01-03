@@ -193,7 +193,7 @@ class Tree(object):
             self._add_to_visited(visited, parent)
 
     def get_hierarchy(self, tree_node):
-        """Return heirarchy of the node with the top ancestor to the node"""
+        """Return heirarchy of the node from the top ancestor to the node"""
         lineage = [l for l in self.get_lineage(tree_node) if l]
         return [node for node in reversed(lineage)] + [tree_node]
 
