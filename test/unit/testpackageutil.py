@@ -66,8 +66,7 @@ def walk_packge_dir_tree(site, dir_tree, import_map, log_msg=False):
 
 class TestPacakge(unittest.TestCase):
     def setUp(self):
-        """Universal data required for creating package"""
-        self.log_msg = False
+        self.log_msg = True
         self.site = tempfile.mkdtemp()
         self.package_name = 'mock_package'
 
@@ -80,7 +79,6 @@ class TestPacakge(unittest.TestCase):
                 logger.Logger.info(msg)
 
     def setup_dir_tree_data(self):
-        """Data required for creating package from dir tree"""
         self.files = [
             'file_01.py',
             'file_02.py',
@@ -117,13 +115,11 @@ class TestPacakge(unittest.TestCase):
             [(file, random_modules()) for file in self.files])
 
     def setup_random_tree_data(self):
-        """Data required for creating package from random file nodes"""
         self.min_max_nodes = (20, 50)
         self.min_max_imports = (5, 8)
 
     def test_from_dir_tree(self):
         self.setup_dir_tree_data()
-
         dir_tee_package_data = walk_packge_dir_tree(
             self.site,
             self.dir_tree,
@@ -132,12 +128,10 @@ class TestPacakge(unittest.TestCase):
         )
 
         os_package_data = walk_package_os(self.site, self.package_name)
-
         self.assertEqual(dir_tee_package_data, os_package_data)
 
     def test_from_random(self):
         self.setup_random_tree_data()
-
         random_package_data = walk_package_random(
             self.site,
             self.package_name,
@@ -147,7 +141,6 @@ class TestPacakge(unittest.TestCase):
         )
 
         os_package_data = walk_package_os(self.site, self.package_name)
-
         self.assertEqual(random_package_data, os_package_data)
 
 
