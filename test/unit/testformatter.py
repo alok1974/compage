@@ -117,6 +117,9 @@ class TestFormatters(unittest.TestCase):
             self.expected_string_06,
         )
 
+    def test_hex_to_alpha(self):
+        self.assertEqual(formatter.hex_to_alpha('f718b'), 'fhbib')
+
 
 if __name__ == '__main__':
     unittest.main()
