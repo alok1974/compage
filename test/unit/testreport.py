@@ -2,196 +2,48 @@ import os
 import unittest
 import tempfile
 import shutil
-import uuid
-import random
-import pkgutil
 import collections
 
 
-from compage import report, logger, formatter, nodeutil
-
-
-class FileNode(nodeutil.Node):
-    def __init__(self, name, isdir, imports, parent=None):
-        super(FileNode, self).__init__(name=name, parent=parent)
-        self.isdir = isdir
-        self.imports = imports or []
-
-    @property
-    def contents(self):
-        return ''.join(map(lambda m: 'import {0}\n'.format(m), self.imports))
-
-
-class FileTree(nodeutil.Tree):
-    def __init__(self, nodes, site):
-        super(FileTree, self).__init__(nodes=nodes)
-        self.site = site
-
-    @property
-    def num_dirs(self):
-        return len([node for node in self.nodes if node.isdir])
-
-    @property
-    def num_files(self):
-        return len([node for node in self.nodes if not node.isdir])
-
-    def make_tree(self, log_msg=False):
-        for node in self.nodes:
-            hierarchy = map(lambda node: node.name, self.get_hierarchy(node))
-            node_path = os.path.join(self.site, *hierarchy)
-            self._create_dir(os.path.dirname(node_path))
-            if not node.isdir:
-                with open(node_path, 'w') as fp:
-                    fp.write(node.contents)
-        msg = ("Created '{0}'({1} directories,"
-               " {2} files) at site \"{3}\"").format(
-            self.root_nodes[0].name, self.num_dirs, self.num_files, self.site)
-
-        if log_msg:
-            logger.Logger.info(msg)
-
-    def _create_dir(self, path):
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-
-def validate_min_max(min_num, max_num):
-    if min_num > max_num:
-        min_num = max_num
-    return min_num, max_num
-
-
-def validate_min_max_imports(min_imports, max_imports):
-    max_imports, _ = validate_min_max(
-        max_imports, len(list(pkgutil.iter_modules())))
-    return validate_min_max(min_imports, max_imports)
-
-
-def is_module_name_valid(module_name):
-    return (not module_name.startswith('_')
-            and all(map(str.islower, [char for char in module_name])))
-
-
-def make_dir_node(node_name, parent):
-    dir_node = FileNode(
-        name=node_name,
-        parent=parent,
-        imports=None,
-        isdir=True,
-    )
-
-    # Make __init__.py Node for dir node
-    initpy_node = FileNode(
-        name='__init__.py',
-        parent=dir_node,
-        imports=None,
-        isdir=False,
-    )
-
-    return dir_node, initpy_node
-
-
-def create_random_filenodes(root, min_max_nodes, min_max_imports):
-    """Creates tree from random nodes"""
-    import_map = {}
-    min_imports, max_imports = validate_min_max_imports(*min_max_imports)
-    min_nodes, max_nodes = validate_min_max(*min_max_nodes)
-
-    # Make root node and __init__.py inside it
-    root_node, initpy_node = make_dir_node(root, None)
-    nodes = [root_node, initpy_node]
-
-    curr_parent = root_node
-    module_names = [m for _, m, _ in pkgutil.iter_modules()
-                    if is_module_name_valid(m)]
-    num_nodes = random.randint(min_nodes, max_nodes)
-    for i in range(num_nodes):
-        name = formatter.hex_to_alpha(uuid.uuid4().hex)
-
-        # Randomize dir creation
-        isdir = bool(random.randint(0, 1))
-
-        if isdir:
-            dir_node, initpy_node = make_dir_node(name, curr_parent)
-            nodes += [dir_node, initpy_node]
-        else:
-            num_imports = random.randint(min_imports, max_imports)
-
-            # Randomize modules for import statement
-            imports = [random.choice(module_names) for i in range(num_imports)]
-            name = '{0}.py'.format(name)
-
-            nodes.append(
-                FileNode(
-                    name=name,
-                    parent=curr_parent,
-                    imports=imports,
-                    isdir=False,
-                )
-            )
-
-            # Add file node to import map
-            import_map[name] = imports
-
-        # Randomize going up or down the tree
-        # by selecting a random upstream dir
-        curr_parent = random.choice([n for n in nodes if n.isdir])
-
-    return nodes, import_map
-
-
-def make_mock_package(site, package_name):
-    nodes, _ = create_random_filenodes(
-        package_name,
-        min_max_nodes=(5, 8),
-        min_max_imports=(1, 3),
-    )
-
-    file_tree = FileTree(nodes, site)
-    file_tree.make_tree(log_msg=True)
+from compage import report, logger, formatter, packageutil
 
 
 class TestImportReporter(unittest.TestCase):
-    def setUp(self):
-        self.log_msg = False
-        self.package_name = 'mock_package'
-        self.package_root = tempfile.mkdtemp()
-        self.width = 79
-        self.required_packages = []
-        self.file_tree, self.import_map = self._make_tree()
-        self.file_paths = self._get_file_paths()
-        self.import_reporter = report.ImportReporter(
-            self.package_root,
-            required_packages=self.required_packages,
-            width=self.width,
-        )
+    @classmethod
+    def setUpClass(cls):
+        cls.log_msg = False
+        cls.package_name = 'mock_package'
+        cls.package_root = tempfile.mkdtemp()
+        cls.width = 79
+        cls.required_packages = []
 
-    def _make_tree(self):
-        nodes, import_map = create_random_filenodes(
-            self.package_name,
-            min_max_nodes=(20, 30),
+        cls.mock_package = packageutil.Package.from_random(
+            site=cls.package_root,
+            package_name=cls.package_name,
+            min_max_nodes=(10, 20),
             min_max_imports=(5, 8),
         )
 
-        file_tree = FileTree(nodes, self.package_root)
-        file_tree.make_tree(log_msg=self.log_msg)
+        cls.file_tree = cls.mock_package.file_tree
+        cls.import_map = cls.mock_package.import_map
+        cls.file_paths = cls.mock_package.file_paths
 
-        return file_tree, import_map
+        cls.import_reporter = report.ImportReporter(
+            cls.package_root,
+            required_packages=cls.required_packages,
+            width=cls.width,
+        )
 
-    def _get_file_paths(self):
-        file_paths = {}
-        for file_name in self.import_map:
-            file_node = self.file_tree.find(
-                attr_name='name',
-                attr_value=file_name,
-                )[0]
-            file_path = ''.join(
-                [self.package_root]
-                + ['/{0}'.format(node.name)
-                   for node in self.file_tree.get_hierarchy(file_node)]
-            )
-            file_paths[file_name] = file_path
-        return file_paths
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.package_root):
+            shutil.rmtree(cls.package_root)
+
+            msg = 'Removed package \'{0}\'from site "{1}"'.format(
+                cls.package_name, cls.package_root)
+
+            if cls.log_msg:
+                logger.Logger.info(msg)
 
     def _get_module_report(self, module_name, has_header=False):
         out = []
@@ -244,16 +96,6 @@ class TestImportReporter(unittest.TestCase):
             out.append(formatter.format_header(msg=msg, width=self.width))
             out.append(formatter.format_iterable(required_extras))
         return formatter.format_output(out, width=self.width)
-
-    def tearDown(self):
-        if os.path.exists(self.package_root):
-            shutil.rmtree(self.package_root)
-
-            msg = 'Removed package \'{0}\'from site "{1}"'.format(
-                self.package_name, self.package_root)
-
-            if self.log_msg:
-                logger.Logger.info(msg)
 
     def test_modules(self):
         expected_modules = []
