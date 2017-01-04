@@ -99,6 +99,7 @@ class Package(object):
     @classmethod
     def from_dir_tree(cls, site, dir_tree, import_map, node_class=None,
                       tree_class=None, log_msg=False):
+
         instance = cls(
             site=site,
             package_name=dir_tree.keys()[0],
