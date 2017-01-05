@@ -106,8 +106,13 @@ class TestTree(unittest.TestCase):
             'j': 'h',
             'g': 'f',
         }
+
         for node_name in node_parent_map:
-            node = self.tree.find(attr_name='name', attr_value=node_name)[0]
+            node = list(self.tree.find(
+                attr_name='name',
+                attr_value=node_name,
+                ),
+            )[0]
             self.assertEqual(node.parent.name, node_parent_map.get(node_name))
 
     def test_get_leaf_nodes(self):
@@ -157,8 +162,7 @@ class TestTree(unittest.TestCase):
         }
 
         for node in self.tree.nodes:
-            children = sorted(
-                [child.name for child in self.tree.get_children(node)])
+            children = [child.name for child in self.tree.get_children(node)]
             self.assertEqual(children, children_map.get(node.name))
 
     def test_get_lineage(self):

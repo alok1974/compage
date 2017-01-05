@@ -212,10 +212,10 @@ class Package(object):
     def _get_file_paths(self):
         file_paths = {}
         for file_name in self.import_map:
-            file_node = self.file_tree.find(
+            file_node = list(self.file_tree.find(
                 attr_name='name',
                 attr_value=file_name,
-                )[0]
+                ))[0]
             file_path = ''.join(
                 [self.site]
                 + ['/{0}'.format(node.name)

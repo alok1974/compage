@@ -131,18 +131,15 @@ class Tree(object):
 
     def find(self, attr_name, attr_value):
         """Finds nodes with the given node attribute and value"""
-        return [node for node in self.nodes
-                if getattr(node, attr_name) == attr_value]
+        for node in self.nodes:
+            if getattr(node, attr_name) == attr_value:
+                yield node
 
     def get_leaf_nodes(self):
         """Get all leaf nodes i.e, nodes with no children"""
-        visited = []
         for node in self.nodes:
-            if not [child for child in self.get_children(node)]:
-                if self._is_visited(visited, node):
-                    continue
+            if not any(list(self.get_children(node))):
                 yield node
-                self._add_to_visited(visited, node)
 
     def walk(self, tree_node, get_level=False):
         """
@@ -159,43 +156,37 @@ class Tree(object):
             Node and optionally the depth level of the node. `0` is
             the first level.
         """
-
         for node, level in self._walk(tree_node):
             if get_level:
                 yield node, level
             else:
                 yield node
 
-    def get_children(self, tree_node):
+    def get_children(self, tree_node, sort_by='name'):
         """Iterator for immediate children of the given node"""
-        visited = []
-        for node in self.nodes:
+        for node in sorted(self.nodes, key=lambda n: getattr(n, sort_by)):
             if node.parent == tree_node:
-                if self._is_visited(visited, node):
-                    continue
                 yield node
-                self._add_to_visited(visited, node)
 
     def get_lineage(self, tree_node):
         """
-        Iterator for all parents of the given node
-        starting from immediate parent
+        Iterator for all parents of the given node starting
+        from the parent of the node to the top ancestor
         """
         if tree_node.parent is None:
             return
 
-        visited = []
         yield tree_node.parent
+
         for parent in self.get_lineage(tree_node.parent):
-            if self._is_visited(visited, parent):
-                continue
             yield parent
-            self._add_to_visited(visited, parent)
 
     def get_hierarchy(self, tree_node):
-        """Return heirarchy of the node from the top ancestor to the node"""
-        lineage = [l for l in self.get_lineage(tree_node) if l]
-        return [node for node in reversed(lineage)] + [tree_node]
+        """
+        Return a list of nodes representing the hierarchy
+        from the top parent to the node
+        """
+        return list(reversed(list(self.get_lineage(tree_node)))) + [tree_node]
 
     def to_dict(self, repr_as=None):
         """
@@ -220,7 +211,7 @@ class Tree(object):
         for node in self.nodes:
             heirarchy = map(repr_func, [n for n in self.get_hierarchy(node)])
             self._add_to_nested_tree(n_tree, heirarchy)
-        return self._nested_dict(n_tree)
+        return formatter.FormattedDict(self._nested_dict(n_tree))
 
     def render(self):
         """Returns the tree structure as a string"""
@@ -258,15 +249,10 @@ class Tree(object):
             self._pipe_char, self._node_end_char * max([1, self._indent - 1]))
 
     def _walk(self, tree_node, level=0):
-        visited = []
         yield tree_node, level
-        for child in sorted(
-                self.get_children(tree_node), key=lambda n: n.name):
+        for child in self.get_children(tree_node, sort_by='name'):
             for node, node_level in self._walk(child, level + 1):
-                if self._is_visited(visited, node):
-                    continue
                 yield node, node_level
-                self._add_to_visited(visited, node)
 
     def _add_spacing(self, lines):
         out = []
@@ -290,15 +276,6 @@ class Tree(object):
 
     def _get_root_nodes(self):
         return [node for node in self.nodes if node.parent is None]
-
-    def _is_visited(self, visited, node):
-        if node is not None:
-            return node.nid in visited
-        return False
-
-    def _add_to_visited(self, visited, node):
-        if node is not None:
-            visited.append(node.nid)
 
     # From https://gist.github.com/hrldcpr/2012250
     def _nested_tree(self):
