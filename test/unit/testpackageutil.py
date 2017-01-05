@@ -25,8 +25,12 @@ def walk_package_os(site, package_name):
     out = []
     root_dir = os.path.join(site, package_name)
     for root, dirs, files in os.walk(root_dir):
-        root_name = root or root_dir
+        # Forcing os.walk to recurse alphabetically
+        # as this is the behaviour expected from
+        # Tree.walk()
+        dirs.sort()
 
+        root_name = root or root_dir
         parent = os.path.basename(root_name)
         out.append(parent)
 
@@ -66,9 +70,10 @@ def walk_packge_dir_tree(site, dir_tree, import_map, log_msg=False):
 
 class TestPacakge(unittest.TestCase):
     def setUp(self):
-        self.log_msg = True
+        self.log_msg = False
         self.site = tempfile.mkdtemp()
         self.package_name = 'mock_package'
+        self.maxDiff = None
 
     def tearDown(self):
         if os.path.exists(self.site):
@@ -115,7 +120,7 @@ class TestPacakge(unittest.TestCase):
             [(file, random_modules()) for file in self.files])
 
     def setup_random_tree_data(self):
-        self.min_max_nodes = (20, 50)
+        self.min_max_nodes = (50, 80)
         self.min_max_imports = (5, 8)
 
     def test_from_dir_tree(self):
