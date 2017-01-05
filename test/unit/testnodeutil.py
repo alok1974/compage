@@ -99,21 +99,14 @@ class TestTree(unittest.TestCase):
         self.assertEqual(root_nodes, ['a', 'f'])
 
     def test_find(self):
-        node_parent_map = {
-            'c': 'b',
-            'e': 'd',
-            'i': 'h',
-            'j': 'h',
-            'g': 'f',
-        }
-
-        for node_name in node_parent_map:
+        node_names = [node.name for node in self.tree.nodes]
+        for node_name in node_names:
             node = list(self.tree.find(
                 attr_name='name',
                 attr_value=node_name,
                 ),
             )[0]
-            self.assertEqual(node.parent.name, node_parent_map.get(node_name))
+            self.assertEqual(node.name, node_name)
 
     def test_get_leaf_nodes(self):
         leaf_nodes = sorted([node.name for node in self.tree.get_leaf_nodes()])
