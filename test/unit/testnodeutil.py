@@ -8,10 +8,10 @@ from compage import nodeutil, exception
 class TestNode(unittest.TestCase):
     def setUp(self):
         self.parent_node = nodeutil.Node('parent', None)
-        self.parent_nid = self.parent_node.nid
-        self.node_nid = uuid.uuid4().hex
+        self.parent_uid = self.parent_node.uid
+        self.node_uid = uuid.uuid4().hex
         self.node = nodeutil.Node('node', self.parent_node)
-        self.node_nid = self.node.nid
+        self.node_uid = self.node.uid
 
     def tearDown(self):
         pass
@@ -29,35 +29,36 @@ class TestNode(unittest.TestCase):
     def test_parent(self):
         self.assertEqual(self.node.parent, self.parent_node)
 
-    def test_nid(self):
-        node = nodeutil.Node(name='node', parent=None, nid='foo')
-        self.assertEqual(node.nid, 'foo')
+    def test_uid(self):
+        node = nodeutil.Node(name='node', parent=None, uid='foo')
+        self.assertEqual(node.uid, 'foo')
 
     def test_short_info(self):
         self.assertEqual(
-            self.node.short_info, "Node(node|{0})".format(self.node_nid[:5]))
+            self.node.short_info, "Node(node|{0})".format(self.node_uid[:5]))
 
     def test_eq(self):
         other_node = nodeutil.Node(
-            'node', parent=self.parent_node, nid=self.node_nid)
+            'node', parent=self.parent_node, uid=self.node_uid)
         self.assertEqual(self.node, other_node)
 
     def test_neq(self):
-        other_node = nodeutil.Node('node', self.parent_node, nid='foo')
+        other_node = nodeutil.Node('node', self.parent_node, uid='foo')
         self.assertNotEqual(self.node, other_node)
 
     def test_repr(self):
         self.assertEqual(
             repr(self.node),
             "Node(node|{0}|parent='parent|{1}')".format(
-                self.node_nid,
-                self.parent_nid,
+                self.node_uid,
+                self.parent_uid,
                 ),
         )
 
 
 class TestTree(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.tree_dict = {
             'a': {
                 'b': {
@@ -83,7 +84,7 @@ class TestTree(unittest.TestCase):
 
     def test_tree_init(self):
         chars = 'abcdefghijkl'
-        nodes = [nodeutil.Node(name=char, nid='nid') for char in chars]
+        nodes = [nodeutil.Node(name=char, uid='uid') for char in chars]
         with self.assertRaises(exception.TreeCreationError):
             nodeutil.Tree(nodes)
 
@@ -155,7 +156,8 @@ class TestTree(unittest.TestCase):
         }
 
         for node in self.tree.nodes:
-            children = [child.name for child in self.tree.get_children(node)]
+            children = sorted(
+                [child.name for child in self.tree.get_children(node)])
             self.assertEqual(children, children_map.get(node.name))
 
     def test_get_lineage(self):
@@ -229,12 +231,12 @@ class TestTree(unittest.TestCase):
         other_nodes = []
         for node in self.tree.nodes:
             other_nodes.append(nodeutil.Node(
-                name=node.name, parent=node.parent, nid=node.nid))
+                name=node.name, parent=node.parent, uid=node.uid))
         other_tree = nodeutil.Tree(other_nodes)
         self.assertEqual(self.tree, other_tree)
 
     def test_neq(self):
-        # This will generate a tree different nid for each node
+        # This will generate a tree different uid for each node
         tree = nodeutil.Tree.from_dict(self.tree_dict)
         self.assertNotEqual(tree, self.tree)
 

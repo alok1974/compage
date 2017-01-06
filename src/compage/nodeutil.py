@@ -10,7 +10,9 @@ __all__ = ['Node', 'Tree']
 
 class Node(object):
     """The node object, holds parent information"""
-    def __init__(self, name, parent=None, nid=None):
+    __slots__ = ('_name', '_parent', '_uid')
+
+    def __init__(self, name, parent=None, uid=None):
         if not self._valid_parent(parent):
             msg = "parent '{0}' should be of type {1} or None".format(
                 parent, Node)
@@ -19,7 +21,7 @@ class Node(object):
         super(Node, self).__init__()
         self._name = name
         self._parent = parent
-        self._nid = nid or uuid.uuid4().hex[:8]
+        self._uid = uid or uuid.uuid4().hex[:8]
 
     @property
     def name(self):
@@ -30,15 +32,15 @@ class Node(object):
         return self._parent
 
     @property
-    def nid(self):
-        return self._nid
+    def uid(self):
+        return self._uid
 
     @property
     def short_info(self):
         return "{0}({1}|{2})".format(
             self.__class__.__name__,
             self.name,
-            self.nid[:5],
+            self.uid[:5],
         )
 
     def _valid_parent(self, parent):
@@ -47,7 +49,7 @@ class Node(object):
     def __eq__(self, other):
         if other is None:
             return False
-        return self.nid == other.nid
+        return self.uid == other.uid
 
     def __neq__(self, other):
         return not self == other
@@ -56,9 +58,9 @@ class Node(object):
         return "{0}({1}|{2}|parent='{3}|{4}')".format(
             self.__class__.__name__,
             self.name,
-            self.nid,
+            self.uid,
             self.parent.name if self.parent else None,
-            self.parent.nid if self.parent else None,
+            self.parent.uid if self.parent else None,
         )
 
 
@@ -66,13 +68,11 @@ class Tree(object):
     """Provides queries on the given node objects"""
     def __init__(self, nodes):
         if not self._unique(nodes):
-            msg = "Some of the nodes have same nids, unable to create tree"
+            msg = "Some of the nodes have same uids, unable to create tree"
             raise exception.TreeCreationError(msg)
 
         super(Tree, self).__init__()
-        self.nodes = nodes
-        self._num_nodes = len(self.nodes)
-        self._root_nodes = self._get_root_nodes()
+        self._parent_child_map, self._uid_map = self._get_maps(nodes)
         self._setup_render_chars()
 
     @classmethod
@@ -125,20 +125,28 @@ class Tree(object):
         return cls(nodes)
 
     @property
+    def nodes(self):
+        return self._uid_map.values()
+
+    @property
     def root_nodes(self):
         """All root nodes, i.e. nodes with `None` as parent"""
-        return self._root_nodes
+        return [self._uid_map[uid]
+                for uid in self._parent_child_map.get(None, [])]
 
     def find(self, attr_name, attr_value):
         """Finds nodes with the given node attribute and value"""
-        for node in self.nodes:
-            if getattr(node, attr_name) == attr_value:
-                yield node
+        if attr_name == 'uid':
+            yield self._uid_map[attr_value]
+        else:
+            for node in self.nodes:
+                if getattr(node, attr_name) == attr_value:
+                    yield node
 
     def get_leaf_nodes(self):
         """Get all leaf nodes i.e, nodes with no children"""
-        for node in self.nodes:
-            if not any(list(self.get_children(node))):
+        for uid, node in self._uid_map.iteritems():
+            if uid not in self._parent_child_map:
                 yield node
 
     def walk(self, tree_node, get_level=False):
@@ -162,11 +170,10 @@ class Tree(object):
             else:
                 yield node
 
-    def get_children(self, tree_node, sort_by='name'):
+    def get_children(self, tree_node):
         """Iterator for immediate children of the given node"""
-        for node in sorted(self.nodes, key=lambda n: getattr(n, sort_by)):
-            if node.parent == tree_node:
-                yield node
+        for child_uid in self._parent_child_map.get(tree_node.uid, []):
+            yield self._uid_map[child_uid]
 
     def get_lineage(self, tree_node):
         """
@@ -195,7 +202,7 @@ class Tree(object):
         Args:
             repr_as (str, optional):
                 For displaying information, this can be set to attribute name
-                of the node like - name, nid, short_info, parent etc.
+                of the node like - name, uid, short_info, parent etc.
                 Default is `Node` objects.
 
         Returns:
@@ -250,7 +257,8 @@ class Tree(object):
 
     def _walk(self, tree_node, level=0):
         yield tree_node, level
-        for child in self.get_children(tree_node, sort_by='name'):
+        for child in sorted(
+                list(self.get_children(tree_node)), key=lambda n: n.name):
             for node, node_level in self._walk(child, level + 1):
                 yield node, node_level
 
@@ -273,9 +281,6 @@ class Tree(object):
         string_levels = string.split(self._indentation)
         string_levels[level] = self._pipe_char
         return (self._indentation).join(string_levels)
-
-    def _get_root_nodes(self):
-        return [node for node in self.nodes if node.parent is None]
 
     # From https://gist.github.com/hrldcpr/2012250
     def _nested_tree(self):
@@ -325,12 +330,21 @@ class Tree(object):
             cls._create_nodes_recursively(
                 uid_dict[uid], name_map, node_map, parent_uid=uid)
 
+    def _get_maps(self, nodes):
+        _parent_child_map = {}
+        _uid_map = {}
+        for node in nodes:
+            parent_uid = node.parent.uid if node.parent is not None else None
+            _parent_child_map.setdefault(parent_uid, []).append(node.uid)
+            _uid_map[node.uid] = node
+        return _parent_child_map, _uid_map
+
     def _unique(self, nodes):
-        nids = [node.nid for node in nodes]
-        return len(nids) == len(list(set(nids)))
+        uids = [node.uid for node in nodes]
+        return len(uids) == len(list(set(uids)))
 
     def __eq__(self, other):
-        return self.to_dict(repr_as='nid') == other.to_dict(repr_as='nid')
+        return self.to_dict(repr_as='uid') == other.to_dict(repr_as='uid')
 
     def __ne__(self, other):
         return not self == other
