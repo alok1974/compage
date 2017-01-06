@@ -11,7 +11,7 @@ force_update = False
 
 # ignore - `list` of glob-style patterns to ignore files and directories while
 copying from `src_dir` to `site`
-ignore = ['.pyc']
+ignore = ['*.pyc']
 
 # site - location where the package should be installed. Note that this
 # location should be in sys.path via PYTHONPATH or use of .pth files
