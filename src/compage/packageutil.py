@@ -11,9 +11,11 @@ import uuid
 from compage import formatter, logger, nodeutil
 
 
-class FileNode(nodeutil.Node):
+class PackageFileNode(nodeutil.Node):
+    __slots__ = ('isdir', 'imports')
+
     def __init__(self, name, isdir=None, imports=None, parent=None):
-        super(FileNode, self).__init__(name=name, parent=parent)
+        super(PackageFileNode, self).__init__(name=name, parent=parent)
         self.isdir = isdir
         self.imports = imports or []
 
@@ -22,9 +24,9 @@ class FileNode(nodeutil.Node):
         return ''.join(map(lambda m: 'import {0}\n'.format(m), self.imports))
 
 
-class FileTree(nodeutil.Tree):
+class PackageFileTree(nodeutil.Tree):
     def __init__(self, nodes, site=None):
-        super(FileTree, self).__init__(nodes=nodes)
+        super(PackageFileTree, self).__init__(nodes=nodes)
         self.site = site
 
     @property
@@ -67,8 +69,8 @@ class Package(object):
         super(Package, self).__init__()
         self.site = site
         self.package_name = package_name
-        self.node_class = node_class or FileNode
-        self.tree_class = tree_class or FileTree
+        self.node_class = node_class or PackageFileNode
+        self.tree_class = tree_class or PackageFileTree
         self.import_map = None
         self.file_tree = None
         self.file_paths = None
