@@ -9,6 +9,10 @@ install = True
 # force_update - `True` to overwrite(update) existing package
 force_update = False
 
+# ignore - `list` of glob-style patterns to ignore files and directories while
+copying from `src_dir` to `site`
+ignore = ['.pyc']
+
 # site - location where the package should be installed. Note that this
 # location should be in sys.path via PYTHONPATH or use of .pth files
 site = 'path to site location'
@@ -24,6 +28,7 @@ kwargs = {
     'src_dir': src_dir,
     'install': install,
     'force_update': force_update,
+    'ignore': ignore,
 }
 
 setup(*args, **kwargs)
@@ -91,7 +96,8 @@ def validate_uninstall_path(package, package_path):
     return package_path
 
 
-def package_install(site, package_name, src_dir, force_update=False):
+def package_install(site, package_name, src_dir, force_update=False,
+                    ignore=None):
     site = validate_site(site)
     src_dir = validate_package(src_dir)
     dst_dir = os.path.join(site, package_name)
@@ -101,8 +107,17 @@ def package_install(site, package_name, src_dir, force_update=False):
         shutil.rmtree(dst_dir)
         updated = True
 
+    if ignore:
+        ignore = tuple(set(ignore))
+        msg = ('path with following patterns'
+               ' will be ignored:\n{0}\n').format(ignore)
+        sys.stdout.write(msg)
+        ignore_callback = shutil.ignore_patterns(*ignore)
+    else:
+        ignore_callback = None
+
     try:
-        shutil.copytree(src_dir, dst_dir)
+        shutil.copytree(src_dir, dst_dir, ignore=ignore_callback)
     except OSError as e:
         handle_error(exception.InstallError, (e, package_name))
 
@@ -127,13 +142,15 @@ def package_uninstall(site, package_name):
     sys.stdout.write(msg)
 
 
-def setup(site, package_name, src_dir=None, install=True, force_update=False):
+def setup(site, package_name, src_dir=None, install=True, force_update=False,
+          ignore=None):
     if install:
         package_install(
             site=site,
             package_name=package_name,
             src_dir=src_dir,
             force_update=force_update,
+            ignore=ignore,
         )
     else:
         package_uninstall(
