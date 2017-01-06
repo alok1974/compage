@@ -72,7 +72,13 @@ class Tree(object):
             raise exception.TreeCreationError(msg)
 
         super(Tree, self).__init__()
-        self._parent_child_map, self._uid_map = self._get_maps(nodes)
+
+        (
+            self._parent_child_map,
+            self._level_map,
+            self._uid_map
+        ) = self._get_maps(nodes)
+
         self._setup_render_chars()
 
     @classmethod
@@ -134,6 +140,9 @@ class Tree(object):
         return [self._uid_map[uid]
                 for uid in self._parent_child_map.get(None, [])]
 
+    def get_node_level(self, tree_node):
+        return self._level_map[tree_node.uid]
+
     def find(self, attr_name, attr_value):
         """Finds nodes with the given node attribute and value"""
         if attr_name == 'uid':
@@ -164,9 +173,9 @@ class Tree(object):
             Node and optionally the depth level of the node. `0` is
             the first level.
         """
-        for node, level in self._walk(tree_node):
+        for node in self._walk(tree_node):
             if get_level:
-                yield node, level
+                yield node, self.get_node_level(node)
             else:
                 yield node
 
@@ -255,12 +264,12 @@ class Tree(object):
         self._node_char = '{0}{1} '.format(
             self._pipe_char, self._node_end_char * max([1, self._indent - 1]))
 
-    def _walk(self, tree_node, level=0):
-        yield tree_node, level
+    def _walk(self, tree_node):
+        yield tree_node
         for child in sorted(
                 list(self.get_children(tree_node)), key=lambda n: n.name):
-            for node, node_level in self._walk(child, level + 1):
-                yield node, node_level
+            for node in self._walk(child):
+                yield node
 
     def _add_spacing(self, lines):
         out = []
@@ -332,12 +341,14 @@ class Tree(object):
 
     def _get_maps(self, nodes):
         _parent_child_map = {}
+        _level_map = {}
         _uid_map = {}
         for node in nodes:
             parent_uid = node.parent.uid if node.parent is not None else None
             _parent_child_map.setdefault(parent_uid, []).append(node.uid)
+            _level_map[node.uid] = len(list(self.get_lineage(node)))
             _uid_map[node.uid] = node
-        return _parent_child_map, _uid_map
+        return _parent_child_map, _level_map, _uid_map
 
     def _unique(self, nodes):
         uids = [node.uid for node in nodes]

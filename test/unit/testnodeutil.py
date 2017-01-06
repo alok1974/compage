@@ -79,9 +79,6 @@ class TestTree(unittest.TestCase):
 
         self.tree = nodeutil.Tree.from_dict(self.tree_dict)
 
-    def tearDown(self):
-        pass
-
     def test_tree_init(self):
         chars = 'abcdefghijkl'
         nodes = [nodeutil.Node(name=char, uid='uid') for char in chars]
@@ -108,6 +105,24 @@ class TestTree(unittest.TestCase):
                 ),
             )[0]
             self.assertEqual(node.name, node_name)
+
+    def test_get_node_level(self):
+        level_map = {
+            'a': 0,
+            'f': 0,
+            'b': 1,
+            'd': 1,
+            'g': 1,
+            'c': 2,
+            'e': 2,
+            'h': 2,
+            'i': 3,
+            'j': 3,
+        }
+
+        for node in self.tree.nodes:
+            self.assertEqual(
+                self.tree.get_node_level(node), level_map.get(node.name))
 
     def test_get_leaf_nodes(self):
         leaf_nodes = sorted([node.name for node in self.tree.get_leaf_nodes()])
