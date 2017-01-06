@@ -3,7 +3,8 @@ Generic reusable python utilities and tools.
 
 ### compage.services
 --------------------
-Classes, Functions and other Objects can be stored and retrieved when needed. Painless implementation of patterns like Dependency Injection.
+Classes, Functions and other Objects can be stored and retrieved when needed.
+Painless implementation of patterns like Dependency Injection.
 ```python
 from compage.service import ServiceManager as mgr
 
@@ -38,7 +39,8 @@ assert target.injected_code.foo == 'foo'
 -------------------------
 Light weight package installer a la setup.py(distutils).
 
-Example: Installs (copies) package `foo` from the `/src/foo/` to `/custom/site-packages/`
+Example: Installs (copies) package `foo` from the `/src/foo/`
+to `/custom/site-packages/`
 
 ```python
 from compage.installutil import setup
@@ -49,7 +51,8 @@ install = True
 # force_update - `True` to overwrite(update) existing package
 force_update = False
 
-# ignore - `list` of glob-style patterns to ignore files and directories while copying from `src_dir` to `site`
+# ignore - `list` of glob-style patterns to ignore files and directories while
+# copying from `src_dir` to `site`
 ignore = ['*.pyc']
 
 # site - location where the package should be installed. Note that this
