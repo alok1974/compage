@@ -73,11 +73,7 @@ class Tree(object):
 
         super(Tree, self).__init__()
 
-        (
-            self._parent_child_map,
-            self._level_map,
-            self._uid_map
-        ) = self._get_maps(nodes)
+        self._parent_child_map, self._uid_map = self._get_maps(nodes)
 
         self._setup_render_chars()
 
@@ -132,21 +128,21 @@ class Tree(object):
 
     @property
     def nodes(self):
-        return self._uid_map.values()
+        return [t[0] for t in self._uid_map.values()]
 
     @property
     def root_nodes(self):
         """All root nodes, i.e. nodes with `None` as parent"""
-        return [self._uid_map[uid]
+        return [self._get_node_from_uid(uid)
                 for uid in self._parent_child_map.get(None, [])]
 
     def get_node_level(self, tree_node):
-        return self._level_map[tree_node.uid]
+        return self._uid_map[tree_node.uid][1]
 
     def find(self, attr_name, attr_value):
         """Finds nodes with the given node attribute and value"""
         if attr_name == 'uid':
-            yield self._uid_map[attr_value]
+            yield self._get_node_from_uid(attr_value)
         else:
             for node in self.nodes:
                 if getattr(node, attr_name) == attr_value:
@@ -154,7 +150,7 @@ class Tree(object):
 
     def get_leaf_nodes(self):
         """Get all leaf nodes i.e, nodes with no children"""
-        for uid, node in self._uid_map.iteritems():
+        for uid, (node, _) in self._uid_map.iteritems():
             if uid not in self._parent_child_map:
                 yield node
 
@@ -182,7 +178,7 @@ class Tree(object):
     def get_children(self, tree_node):
         """Iterator for immediate children of the given node"""
         for child_uid in self._parent_child_map.get(tree_node.uid, []):
-            yield self._uid_map[child_uid]
+            yield self._get_node_from_uid(child_uid)
 
     def get_lineage(self, tree_node):
         """
@@ -341,14 +337,15 @@ class Tree(object):
 
     def _get_maps(self, nodes):
         _parent_child_map = {}
-        _level_map = {}
         _uid_map = {}
         for node in nodes:
             parent_uid = node.parent.uid if node.parent is not None else None
             _parent_child_map.setdefault(parent_uid, []).append(node.uid)
-            _level_map[node.uid] = len(list(self.get_lineage(node)))
-            _uid_map[node.uid] = node
-        return _parent_child_map, _level_map, _uid_map
+            _uid_map[node.uid] = (node, len(list(self.get_lineage(node))))
+        return _parent_child_map, _uid_map
+
+    def _get_node_from_uid(self, uid):
+        return self._uid_map[uid][0]
 
     def _unique(self, nodes):
         uids = [node.uid for node in nodes]
