@@ -1,11 +1,14 @@
 """Various Pretty formatters"""
 
+import os
 import collections
 import json
 import textwrap
 import functools
 import re
 
+
+# import compage.nodeutil as nodeutil
 
 __all__ = [
     'FormattedDict',
@@ -107,3 +110,28 @@ def hex_to_alpha(hex):
             s = char_table[s]
         out.append(s)
     return ''.join(out)
+
+
+def tree(root_dir):
+    if not os.path.exists(root_dir) or not os.path.isdir(root_dir):
+        msg = 'Error opening,  "{0}" does not exist or is not a directory.'
+        return msg.format(root_dir)
+    from compage import nodeutil
+    nodes = []
+    first_iteration = True
+    for root, dirs, files in os.walk(root_dir):
+            root_name = root or root_dir
+            parent = os.path.basename(os.path.abspath(root_name))
+
+            if first_iteration:
+                parent_node = nodeutil.Node(parent, None)
+                first_iteration = False
+                nodes.append(parent_node)
+            else:
+                parent_node = filter(lambda n: n.name == parent, nodes)[-1]
+
+            children = sorted(dirs + files)
+            for child in children:
+                child_node = nodeutil.Node(child, parent=parent_node)
+                nodes.append(child_node)
+    return nodeutil.Tree(nodes).render()
