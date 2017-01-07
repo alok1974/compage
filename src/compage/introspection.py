@@ -93,7 +93,7 @@ class ImportScanner(object):
             elif what in ("import", "absolute_import"):
                 fromlist, name = args
                 if fromlist is not None:
-                    fromlist = [f for f in fromlist if f != "*"]
+                    fromlist = filter(lambda f: f != '*', fromlist)
                 if what == "absolute_import":
                     level = 0
                 else:

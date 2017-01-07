@@ -128,21 +128,20 @@ class Tree(object):
 
     @property
     def nodes(self):
-        return [t[0] for t in self._uid_map.values()]
+        return map(lambda x: x.node, self._uid_map.values())
 
     @property
     def root_nodes(self):
         """All root nodes, i.e. nodes with `None` as parent"""
-        return [self._get_node_from_uid(uid)
-                for uid in self._parent_child_map.get(None, [])]
+        return map(self._uid_to_node, self._parent_child_map.get(None, []))
 
     def get_node_level(self, tree_node):
-        return self._uid_map[tree_node.uid][1]
+        return self._uid_map.get(tree_node.uid).level
 
     def find(self, attr_name, attr_value):
         """Finds nodes with the given node attribute and value"""
         if attr_name == 'uid':
-            yield self._get_node_from_uid(attr_value)
+            yield self._uid_to_node(attr_value)
         else:
             for node in self.nodes:
                 if getattr(node, attr_name) == attr_value:
@@ -178,7 +177,7 @@ class Tree(object):
     def get_children(self, tree_node):
         """Iterator for immediate children of the given node"""
         for child_uid in self._parent_child_map.get(tree_node.uid, []):
-            yield self._get_node_from_uid(child_uid)
+            yield self._uid_to_node(child_uid)
 
     def get_lineage(self, tree_node):
         """
@@ -221,7 +220,7 @@ class Tree(object):
                 return node
         n_tree = self._nested_tree()
         for node in self.nodes:
-            heirarchy = map(repr_func, [n for n in self.get_hierarchy(node)])
+            heirarchy = map(repr_func, self.get_hierarchy(node))
             self._add_to_nested_tree(n_tree, heirarchy)
         return formatter.FormattedDict(self._nested_dict(n_tree))
 
@@ -336,19 +335,21 @@ class Tree(object):
                 uid_dict[uid], name_map, node_map, parent_uid=uid)
 
     def _get_maps(self, nodes):
-        _parent_child_map = {}
-        _uid_map = {}
+        node_data = collections.namedtuple('NodeData', 'node level')
+        parent_child_map = {}
+        uid_map = {}
         for node in nodes:
             parent_uid = node.parent.uid if node.parent is not None else None
-            _parent_child_map.setdefault(parent_uid, []).append(node.uid)
-            _uid_map[node.uid] = (node, len(list(self.get_lineage(node))))
-        return _parent_child_map, _uid_map
+            parent_child_map.setdefault(parent_uid, []).append(node.uid)
+            level = len(list(self.get_lineage(node)))
+            uid_map[node.uid] = node_data(node=node, level=level)
+        return parent_child_map, uid_map
 
-    def _get_node_from_uid(self, uid):
-        return self._uid_map[uid][0]
+    def _uid_to_node(self, uid):
+        return self._uid_map.get(uid).node
 
     def _unique(self, nodes):
-        uids = [node.uid for node in nodes]
+        uids = map(lambda x: x.uid, nodes)
         return len(uids) == len(list(set(uids)))
 
     def __eq__(self, other):

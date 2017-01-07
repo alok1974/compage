@@ -31,7 +31,7 @@ def walk_package_os(site, package_name):
         dirs.sort()
 
         root_name = root or root_dir
-        parent = os.path.basename(root_name)
+        parent = os.path.basename(os.path.abspath(root_name))
         out.append(parent)
 
         children = sorted(dirs + files)

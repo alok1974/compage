@@ -31,11 +31,11 @@ class PackageFileTree(nodeutil.Tree):
 
     @property
     def num_dirs(self):
-        return len([node for node in self.nodes if node.isdir])
+        return len(filter(lambda n: n.isdir, self.nodes))
 
     @property
     def num_files(self):
-        return len([node for node in self.nodes if not node.isdir])
+        return len(filter(lambda n: not n.isdir, self.nodes))
 
     def make_tree(self, log_msg=False):
         if self.site is None:
@@ -175,7 +175,7 @@ class Package(object):
 
             # Randomize going up or down the tree
             # by selecting a random upstream dir
-            curr_parent = random.choice([n for n in nodes if n.isdir])
+            curr_parent = random.choice(filter(lambda n: n.isdir, nodes))
 
         return nodes, import_map
 
