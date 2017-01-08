@@ -18,7 +18,8 @@ __all__ = [
     'format_header',
     'format_output',
     'camel_case_to_snake_case',
-    'hex_to_alpha'
+    'hex_to_alpha',
+    'tree'
 ]
 
 
