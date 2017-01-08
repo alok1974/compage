@@ -67,10 +67,7 @@ class Node(object):
 class Tree(object):
     """Provides queries on the given node objects"""
     def __init__(self, nodes):
-        if not self._unique(nodes):
-            msg = "Some of the nodes have same uids, unable to create tree"
-            raise exception.TreeCreationError(msg)
-
+        Validation.validate_nodes(nodes)
         super(Tree, self).__init__()
 
         self._parent_child_map, self._uid_map = self._get_maps(nodes)
@@ -224,8 +221,9 @@ class Tree(object):
             self._add_to_nested_tree(n_tree, heirarchy)
         return formatter.FormattedDict(self._nested_dict(n_tree))
 
-    def render(self):
+    def render(self, line_spacing=1):
         """Returns the tree structure as a string"""
+        Validation.validate_line_spacing(line_spacing)
         out = []
         levels = []
         for root_node in sorted(self.root_nodes, key=lambda n: n.name):
@@ -247,7 +245,10 @@ class Tree(object):
                     node.name,
                     ),
                 )
-        return '\n'.join(self._add_spacing(out))
+
+        for i in range(line_spacing - 1):
+            out = self._add_spacing(out)
+        return '\n'.join(out)
 
     def _setup_render_chars(self):
         # characters for rendering tree
@@ -360,3 +361,23 @@ class Tree(object):
 
     def __repr__(self):
         return formatter.FormattedDict(self.to_dict(repr_as='name')).__repr__()
+
+
+class Validation(object):
+    @classmethod
+    def validate_nodes(cls, nodes):
+        uids = map(lambda x: x.uid, nodes)
+        if not len(uids) == len(list(set(uids))):
+            msg = "Some of the nodes have same uids, unable to create tree"
+            raise exception.TreeCreationError(msg)
+
+    @classmethod
+    def validate_line_spacing(cls, line_spacing):
+        if not isinstance(line_spacing, int):
+            msg = ('Unable to render tree with line spacing {0}, '
+                   'expecting an int value.').format(line_spacing)
+            raise exception.TreeRenderError(msg)
+        elif line_spacing < 1:
+            msg = ('Unable to render tree with line spacing {0}, '
+                   'it should be more than 0.').format(line_spacing)
+            raise exception.TreeRenderError(msg)

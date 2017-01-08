@@ -62,3 +62,8 @@ class NodeCreationError(ValueError):
 class TreeCreationError(ValueError):
     """Error raised when unable to create tree"""
     pass
+
+
+class TreeRenderError(ValueError):
+    """Error raised when unable to render tree"""
+    pass

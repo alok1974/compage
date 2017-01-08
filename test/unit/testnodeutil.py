@@ -79,11 +79,30 @@ class TestTree(unittest.TestCase):
 
         self.tree = nodeutil.Tree.from_dict(self.tree_dict)
 
-    def test_tree_init(self):
+    def test_unique_node_validation(self):
         chars = 'abcdefghijkl'
         nodes = [nodeutil.Node(name=char, uid='uid') for char in chars]
-        with self.assertRaises(exception.TreeCreationError):
+        with self.assertRaises(exception.TreeCreationError) as e:
             nodeutil.Tree(nodes)
+
+        err_msg = 'Some of the nodes have same uids, unable to create tree'
+        self.assertEqual(e.exception.message, err_msg)
+
+    def test_line_spacing_int_validation(self):
+        line_spacing = 1.5
+        with self.assertRaises(exception.TreeRenderError) as e:
+            self.tree.render(line_spacing=line_spacing)
+        err_msg = ('Unable to render tree with line spacing {0}, '
+                   'expecting an int value.').format(line_spacing)
+        self.assertEqual(e.exception.message, err_msg)
+
+    def test_line_spacing_more_than_zero_validation(self):
+        line_spacing = 0
+        with self.assertRaises(exception.TreeRenderError) as e:
+            self.tree.render(line_spacing=line_spacing)
+        err_msg = ('Unable to render tree with line spacing {0}, '
+                   'it should be more than 0.').format(line_spacing)
+        self.assertEqual(e.exception.message, err_msg)
 
     def test_from_dict(self):
         other_tree = nodeutil.Tree.from_dict(self.tree_dict)
@@ -220,23 +239,14 @@ class TestTree(unittest.TestCase):
     def test_render(self):
         expected_string = (
             '|___ a\n'
-            '|    |\n'
             '|    |___ b\n'
-            '|    |    |\n'
             '|    |    |___ c\n'
-            '|    |\n'
             '|    |___ d\n'
-            '|        |\n'
             '|        |___ e\n'
-            '|        |\n'
             '|        |___ h\n'
-            '|            |\n'
             '|            |___ i\n'
-            '|            |\n'
             '|            |___ j\n'
-            '|\n'
             '|___ f\n'
-            '    |\n'
             '    |___ g'
         )
 
