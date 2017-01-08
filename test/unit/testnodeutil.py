@@ -16,9 +16,14 @@ class TestNode(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_node_init_01(self):
-        with self.assertRaises(exception.NodeCreationError):
-            nodeutil.Node('node', 'not a valid parent')
+    def test_validate_parent(self):
+        parent = 'not a valid parent'
+        with self.assertRaises(exception.NodeCreationError) as e:
+            nodeutil.Node('node', parent)
+
+        err_msg = ("parent '{0}' should be of"
+                   " type {1} or None").format(parent, nodeutil.Node)
+        self.assertEqual(e.exception.message, err_msg)
 
     def test_node_init_02(self):
         self.assertTrue(isinstance(self.node, nodeutil.Node))

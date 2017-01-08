@@ -13,11 +13,7 @@ class Node(object):
     __slots__ = ('_name', '_parent', '_uid')
 
     def __init__(self, name, parent=None, uid=None):
-        if not self._valid_parent(parent):
-            msg = "parent '{0}' should be of type {1} or None".format(
-                parent, Node)
-            raise exception.NodeCreationError(msg)
-
+        Validation.validate_parent(parent)
         super(Node, self).__init__()
         self._name = name
         self._parent = parent
@@ -42,9 +38,6 @@ class Node(object):
             self.name,
             self.uid[:5],
         )
-
-    def _valid_parent(self, parent):
-        return parent is None or isinstance(parent, Node)
 
     def __eq__(self, other):
         if other is None:
@@ -349,10 +342,6 @@ class Tree(object):
     def _uid_to_node(self, uid):
         return self._uid_map.get(uid).node
 
-    def _unique(self, nodes):
-        uids = map(lambda x: x.uid, nodes)
-        return len(uids) == len(list(set(uids)))
-
     def __eq__(self, other):
         return self.to_dict(repr_as='uid') == other.to_dict(repr_as='uid')
 
@@ -364,6 +353,13 @@ class Tree(object):
 
 
 class Validation(object):
+    @classmethod
+    def validate_parent(cls, parent):
+        if parent is not None and not isinstance(parent, Node):
+            msg = "parent '{0}' should be of type {1} or None".format(
+                parent, Node)
+            raise exception.NodeCreationError(msg)
+
     @classmethod
     def validate_nodes(cls, nodes):
         uids = map(lambda x: x.uid, nodes)
