@@ -112,7 +112,7 @@ def hex_to_alpha(hex):
     return ''.join(out)
 
 
-def tree(root_dir):
+def tree(root_dir, line_spacing=1, show_hidden=False):
     if not os.path.exists(root_dir) or not os.path.isdir(root_dir):
         msg = 'Error opening,  "{0}" does not exist or is not a directory.'
         return msg.format(root_dir)
@@ -120,6 +120,10 @@ def tree(root_dir):
     nodes = []
     first_iteration = True
     for root, dirs, files in os.walk(root_dir):
+            if not show_hidden:
+                dirs[:] = filter(lambda x: not x.startswith('.'), dirs)
+                files[:] = filter(lambda x: not x.startswith('.'), files)
+
             root_name = root or root_dir
             parent = os.path.basename(os.path.abspath(root_name))
 
@@ -134,4 +138,4 @@ def tree(root_dir):
             for child in children:
                 child_node = nodeutil.Node(child, parent=parent_node)
                 nodes.append(child_node)
-    return nodeutil.Tree(nodes).render()
+    return nodeutil.Tree(nodes).render(line_spacing=line_spacing)
