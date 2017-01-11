@@ -9,12 +9,13 @@ import collections
 __all__ = ['ImportScanner', 'ImportFinder']
 
 
-LOAD_CONST = chr(dis.opname.index('LOAD_CONST'))
-IMPORT_NAME = chr(dis.opname.index('IMPORT_NAME'))
-STORE_NAME = chr(dis.opname.index('STORE_NAME'))
-STORE_GLOBAL = chr(dis.opname.index('STORE_GLOBAL'))
-STORE_OPS = [STORE_NAME, STORE_GLOBAL]
-HAVE_ARGUMENT = chr(dis.HAVE_ARGUMENT)
+class Opname(object):
+    LOAD_CONST = chr(dis.opname.index('LOAD_CONST'))
+    IMPORT_NAME = chr(dis.opname.index('IMPORT_NAME'))
+    STORE_NAME = chr(dis.opname.index('STORE_NAME'))
+    STORE_GLOBAL = chr(dis.opname.index('STORE_GLOBAL'))
+    STORE_OPS = [STORE_NAME, STORE_GLOBAL]
+    HAVE_ARGUMENT = chr(dis.HAVE_ARGUMENT)
 
 
 # Adapted from stdlib 'modulefinder'
@@ -49,17 +50,22 @@ class ImportScanner(object):
         code = co.co_code
         names = co.co_names
         consts = co.co_consts
-        LOAD_LOAD_AND_IMPORT = LOAD_CONST + LOAD_CONST + IMPORT_NAME
+        LOAD_AND_IMPORT = (
+            Opname.LOAD_CONST
+            + Opname.LOAD_CONST
+            + Opname.IMPORT_NAME
+        )
+
         i = 0
         while code:
             c = code[0]
-            if c in STORE_OPS:
+            if c in Opname.STORE_OPS:
                 oparg, = struct.unpack('<H', code[1:3])
                 yield "store", (i, names[oparg],)
                 code = code[3:]
                 i += 3
                 continue
-            if code[:9:3] == LOAD_LOAD_AND_IMPORT:
+            if code[:9:3] == LOAD_AND_IMPORT:
                 oparg_1, oparg_2, oparg_3 = struct.unpack('<xHxHxH', code[:9])
                 level = consts[oparg_1]
                 if level == -1:  # normal import
@@ -73,7 +79,7 @@ class ImportScanner(object):
                 code = code[9:]
                 i += 9
                 continue
-            if c >= HAVE_ARGUMENT:
+            if c >= Opname.HAVE_ARGUMENT:
                 code = code[3:]
                 i += 3
             else:
