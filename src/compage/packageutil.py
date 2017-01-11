@@ -116,12 +116,8 @@ class Package(object):
 
         leaf_nodes = [n for n in instance.file_tree.get_leaf_nodes()]
         for node in instance.file_tree.nodes:
-            if node in leaf_nodes:
-                node.isdir = False
-                node.imports = import_map.get(node.name, [])
-            else:
-                node.isdir = True
-                node.imports = []
+            node.isdir = node not in leaf_nodes
+            node.imports = import_map.get(node.name, [])
 
         instance.file_tree.site = instance.site
         instance.file_tree.make_tree(log_msg=log_msg)
