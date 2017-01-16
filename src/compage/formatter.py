@@ -114,6 +114,7 @@ def hex_to_alpha(hex):
 
 
 def tree(root_dir, line_spacing=1, show_hidden=False):
+    """Returns a graphical representation of directory structure"""
     if not os.path.exists(root_dir) or not os.path.isdir(root_dir):
         msg = 'Error opening,  "{0}" does not exist or is not a directory.'
         return msg.format(root_dir)
